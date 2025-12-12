@@ -8,7 +8,7 @@ import * as Importers from './importers.js';
 // --- INITIALIZATION ---
 window.onload = function() {
     loadStateFromStorage();
-    if (state.sections.length === 0) {
+    if (!state.frontmatter.title) {
         initDefaults();
     }
     
@@ -30,8 +30,10 @@ window.saveState = function() {
 };
 
 window.resetState = function() {
-    if(confirm("Delete everything?")) {
+    if(confirm("Are you sure you want to delete ALL data and reset the editor?")) {
         localStorage.removeItem("digestState");
+        localStorage.removeItem("gistId");
+        sessionStorage.removeItem("gistToken");
         updateState({ frontmatter: {}, sections: [] });
         document.getElementById("docTitle").value = "";
         document.getElementById("docDate").value = "";
@@ -39,6 +41,7 @@ window.resetState = function() {
         initDefaults();
         renderSections();
         updatePreview();
+        alert("Editor has been completely reset.");
     }
 };
 
@@ -51,7 +54,7 @@ window.addSection = function(type) {
 };
 
 window.addCustomSection = function() {
-    const title = prompt("Section title:");
+    const title = prompt("Enter Custom Section Title:");
     if (title) {
         state.sections.push(createSectionObject("custom", title));
         saveStateToStorage();
@@ -83,8 +86,9 @@ window.addEntry = function(sectionId, type) {
         entry.date = "";
         entry.theme = "";
         entry.guestEditor = "";
-        entry.urlText = "Link";
+        entry.urlText = "link";
         entry.openAccess = false;
+        entry.description = "";
     }
     
     section.entries.push(entry);
@@ -103,7 +107,8 @@ window.deleteEntry = function(sectionId, entryId) {
 window.updateEntry = function(sectionId, entryId, field, value) {
     const section = state.sections.find(s => s.id === sectionId);
     const entry = section.entries.find(e => e.id === entryId);
-    entry[field] = value;
+    // Handle checkbox value conversion
+    entry[field] = (typeof entry[field] === 'boolean') ? !!value : value; 
     saveStateToStorage();
     updatePreview();
 };
@@ -156,7 +161,7 @@ window.downloadMarkdown = function() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "digest.md";
+    a.download = `${state.frontmatter.title.replace(/\s/g, '-') || 'digest'}.md`;
     a.click();
 };
 
@@ -188,23 +193,23 @@ export function renderSections() {
         `;
 
         // Type-specific "Add" buttons
-        if (section.type === "publications") {
-            html += `<button onclick="addEntry('${section.id}', 'publication')" class="mb-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition font-medium">+ Add Publication</button>`;
-        } else if (section.type === "journalIssues") {
-            html += `<button onclick="addEntry('${section.id}', 'journalIssue')" class="mb-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition font-medium">+ Add Journal Issue</button>`;
-        } else if (section.type === "conferences") {
-            html += `<button onclick="addEntry('${section.id}', 'conference')" class="mb-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition font-medium">+ Add Conference</button>`;
-        } else if (section.type === "callForPapers") {
-            html += `<button onclick="addEntry('${section.id}', 'callForPapers')" class="mb-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition font-medium">+ Add Call</button>`;
-        } else if (section.type === "festivals") {
-            html += `<button onclick="addEntry('${section.id}', 'festival')" class="mb-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition font-medium">+ Add Festival</button>`;
-        } else if (section.type === "exhibitions") {
-            html += `<button onclick="addEntry('${section.id}', 'exhibition')" class="mb-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition font-medium">+ Add Exhibition</button>`;
-        } else if (section.type === "media") {
-            html += `<button onclick="addEntry('${section.id}', 'media')" class="mb-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition font-medium">+ Add Media</button>`;
-        } else {
-            html += `<button onclick="addEntry('${section.id}', 'text')" class="mb-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition font-medium">+ Add Entry</button>`;
-        }
+        const type = section.type;
+        const entryMap = {
+            "publications": { type: "publication", text: "Publication" },
+            "journalIssues": { type: "journalIssue", text: "Journal Issue" },
+            "conferences": { type: "conference", text: "Conference" },
+            "callForPapers": { type: "callForPapers", text: "Call" },
+            "festivals": { type: "festival", text: "Festival" },
+            "exhibitions": { type: "exhibition", text: "Exhibition" },
+            "media": { type: "media", text: "Media Entry" },
+            "news": { type: "text", text: "News Item" },
+            "quickLinks": { type: "text", text: "Link Item" },
+            "custom": { type: "text", text: "Entry" }
+        };
+        const entryConfig = entryMap[type] || entryMap["custom"];
+
+        html += `<button onclick="addEntry('${section.id}', '${entryConfig.type}')" class="mb-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition font-medium">+ Add ${entryConfig.text}</button>`;
+
 
         html += '<div class="space-y-4">';
         
@@ -216,8 +221,8 @@ export function renderSections() {
             if (entry.type === "publication") {
                 html += Renderers.renderPublicationForm(section.id, entry);
             } else if (entry.type === "journalIssue") {
-                html += Renderers.renderJournalForm(section.id, entry); // New Renderer
-            } else if (entry.type === "conference" || entry.type === "exhibition" || entry.type === "festival") {
+                html += Renderers.renderJournalForm(section.id, entry);
+            } else if (["conference", "exhibition", "festival"].includes(entry.type)) {
                 html += Renderers.renderEventForm(section.id, entry);
             } else if (entry.type === "callForPapers") {
                 html += Renderers.renderCallForm(section.id, entry);
@@ -271,8 +276,8 @@ export function updatePreview() {
         md += `## ${section.title}\n\n`;
         section.entries.forEach(entry => {
             if (entry.type === "publication") md += Generators.generatePublicationMarkdown(entry);
-            else if (entry.type === "journalIssue") md += Generators.generateJournalMarkdown(entry); // New Generator
-            else if (entry.type === "conference" || entry.type === "exhibition" || entry.type === "festival") md += Generators.generateEventMarkdown(entry);
+            else if (entry.type === "journalIssue") md += Generators.generateJournalMarkdown(entry);
+            else if (["conference", "exhibition", "festival"].includes(entry.type)) md += Generators.generateEventMarkdown(entry);
             else if (entry.type === "callForPapers") md += Generators.generateCallMarkdown(entry);
             else if (entry.type === "media") md += Generators.generateMediaMarkdown(entry);
             else md += `${entry.content || ""}\n\n`;
@@ -301,9 +306,11 @@ function handleSectionDrop(e) {
     if(draggedSection && this.dataset.sectionId) {
         const fromIdx = state.sections.findIndex(s => s.id === draggedSection.dataset.sectionId);
         const toIdx = state.sections.findIndex(s => s.id === this.dataset.sectionId);
-        const [removed] = state.sections.splice(fromIdx, 1);
-        state.sections.splice(toIdx, 0, removed);
-        saveStateToStorage(); renderSections(); updatePreview();
+        if (fromIdx !== toIdx) {
+            const [removed] = state.sections.splice(fromIdx, 1);
+            state.sections.splice(toIdx, 0, removed);
+            saveStateToStorage(); renderSections(); updatePreview();
+        }
     }
     this.classList.remove("drag-over");
 }
@@ -311,15 +318,200 @@ function handleSectionDrop(e) {
 function handleEntryDrop(e) {
     e.stopPropagation(); e.preventDefault();
     if(draggedEntry && this.dataset.entryId) {
-        const fromSec = state.sections.find(s => s.id === draggedEntry.dataset.sectionId);
-        const toSec = state.sections.find(s => s.id === this.dataset.sectionId);
-        const fromEntryIdx = fromSec.entries.findIndex(e => e.id === draggedEntry.dataset.entryId);
-        const toEntryIdx = toSec.entries.findIndex(e => e.id === this.dataset.entryId);
-        
-        const [movedEntry] = fromSec.entries.splice(fromEntryIdx, 1);
-        toSec.entries.splice(toEntryIdx, 0, movedEntry);
-        
-        saveStateToStorage(); renderSections(); updatePreview();
+        const draggedSectionId = draggedEntry.dataset.sectionId;
+        const targetSectionId = this.dataset.sectionId;
+
+        // Ensure both are valid
+        if (draggedSectionId && targetSectionId) {
+            const fromSec = state.sections.find(s => s.id === draggedSectionId);
+            const toSec = state.sections.find(s => s.id === targetSectionId);
+            
+            const fromEntryIdx = fromSec.entries.findIndex(e => e.id === draggedEntry.dataset.entryId);
+            const toEntryIdx = toSec.entries.findIndex(e => e.id === this.dataset.entryId);
+            
+            // Only proceed if moving an entry within the same section or to a different one
+            if (fromSec && toSec && fromEntryIdx !== -1 && toEntryIdx !== -1) {
+                const [movedEntry] = fromSec.entries.splice(fromEntryIdx, 1);
+                
+                // If moving to a different section, check if the target section type is compatible
+                // Since all sections use generic data/text except publications/journals, we'll allow most moves but keep pub/journal separate
+                if (draggedSectionId !== targetSectionId) {
+                    // For simplicity, we'll allow all moves for now, but in a production app, you'd check entry compatibility here.
+                }
+
+                toSec.entries.splice(toEntryIdx, 0, movedEntry);
+                
+                saveStateToStorage(); 
+                renderSections(); 
+                updatePreview();
+            }
+        }
     }
     this.classList.remove("drag-over");
+}
+
+
+// --- GIST CLOUD STORAGE FUNCTIONS ---
+let currentGistAction = '';
+
+function getGistConfig() {
+    // Get values from input fields, falling back to storage if fields are empty
+    return {
+        token: document.getElementById('gistToken').value || sessionStorage.getItem('gistToken'),
+        id: document.getElementById('gistId').value || localStorage.getItem('gistId'),
+        filename: 'digest-draft.json'
+    };
+}
+
+window.openGistModal = function(action) {
+    currentGistAction = action;
+    const modal = document.getElementById('gistModal');
+    const title = document.getElementById('gistModalTitle');
+    const button = document.getElementById('gistActionButton');
+    
+    // Load persisted token/ID
+    const persistedToken = sessionStorage.getItem('gistToken');
+    const persistedId = localStorage.getItem('gistId');
+
+    document.getElementById('gistToken').value = persistedToken || '';
+    document.getElementById('gistId').value = persistedId || '';
+    
+    if (action === 'save') {
+        title.textContent = 'Save Draft to Gist';
+        button.textContent = persistedId ? 'Update Existing Gist' : 'Create New Gist';
+    } else if (action === 'load') {
+        title.textContent = 'Load Draft from Gist';
+        button.textContent = 'Load Draft';
+    }
+
+    modal.style.display = 'flex';
+};
+
+window.closeGistModal = function() {
+    document.getElementById('gistModal').style.display = 'none';
+};
+
+window.gistAction = async function() {
+    const config = getGistConfig();
+    const actionButton = document.getElementById('gistActionButton');
+    actionButton.disabled = true;
+    actionButton.textContent = 'Processing...';
+
+    if (!config.token) {
+        alert("Please enter your GitHub Personal Access Token.");
+        actionButton.disabled = false;
+        actionButton.textContent = 'Perform Action';
+        return;
+    }
+
+    // Persist Token to Session Storage (Cleared when browser closes)
+    sessionStorage.setItem('gistToken', config.token);
+
+    if (currentGistAction === 'save') {
+        const gistId = await saveToGist(config);
+        if (gistId) {
+            localStorage.setItem('gistId', gistId);
+            document.getElementById('gistId').value = gistId;
+            actionButton.textContent = 'Update Existing Gist';
+            alert(`Draft successfully saved! Gist ID: ${gistId}`);
+        }
+    } else if (currentGistAction === 'load') {
+        const loadedState = await loadFromGist(config);
+        if (loadedState) {
+            updateState(loadedState);
+            saveStateToStorage();
+            
+            // Re-populate Frontmatter inputs
+            document.getElementById("docTitle").value = state.frontmatter.title || "";
+            document.getElementById("docDate").value = state.frontmatter.date || "";
+            document.getElementById("docTags").value = state.frontmatter.tags || "";
+            document.getElementById("docDraft").value = state.frontmatter.draft || "true";
+            
+            renderSections();
+            updatePreview();
+            alert("Draft loaded successfully from Gist!");
+        }
+    }
+    
+    actionButton.disabled = false;
+    actionButton.textContent = 'Perform Action';
+    closeGistModal();
+};
+
+async function saveToGist(config) {
+    const data = JSON.stringify(state, null, 2);
+    const url = config.id ? `https://api.github.com/gists/${config.id}` : `https://api.github.com/gists`;
+    const method = config.id ? 'PATCH' : 'POST';
+
+    const payload = {
+        description: `Digest Generator Draft - ${state.frontmatter.title || 'Untitled'}`,
+        public: false, // Recommended: keep drafts private
+        files: {
+            [config.filename]: {
+                content: data
+            }
+        }
+    };
+
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Authorization': `token ${config.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.json();
+            throw new Error(`GitHub API Error (${response.status}): ${errorBody.message || response.statusText}`);
+        }
+
+        const json = await response.json();
+        return json.id; // Returns Gist ID
+    } catch (error) {
+        console.error("Failed to save to Gist:", error);
+        alert(`Error saving to Gist: ${error.message}. Check your PAT, Gist ID, and network connection.`);
+        return null;
+    }
+}
+
+async function loadFromGist(config) {
+    if (!config.id) {
+        alert("Please enter a Gist ID to load.");
+        return null;
+    }
+
+    const url = `https://api.github.com/gists/${config.id}`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `token ${config.token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.json();
+            throw new Error(`GitHub API Error (${response.status}): ${errorBody.message || response.statusText}`);
+        }
+
+        const json = await response.json();
+        const fileContent = json.files[config.filename]?.content;
+
+        if (!fileContent) {
+            alert(`File "${config.filename}" not found in Gist ID: ${config.id}. Make sure the file name is correct.`);
+            return null;
+        }
+
+        return JSON.parse(fileContent);
+
+    } catch (error) {
+        console.error("Failed to load from Gist:", error);
+        alert(`Error loading from Gist: ${error.message}. Check your Gist ID, PAT, and network connection.`);
+        return null;
+    }
 }
