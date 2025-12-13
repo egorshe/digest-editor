@@ -1,4 +1,4 @@
-// js/gist.js - GitHub Gist API integration
+// js/gist.js - GitHub Gist API integration with persistent token
 export class GistManager {
   constructor() {
     this.filename = "digest-draft.json";
@@ -6,9 +6,10 @@ export class GistManager {
 
   getConfig() {
     return {
+      // Changed: Now checks localStorage instead of sessionStorage
       token:
         document.getElementById("gistToken")?.value ||
-        sessionStorage.getItem("gistToken"),
+        localStorage.getItem("gistToken"),
       id:
         document.getElementById("gistId")?.value ||
         localStorage.getItem("gistId"),
@@ -16,11 +17,16 @@ export class GistManager {
   }
 
   persistToken(token) {
-    sessionStorage.setItem("gistToken", token);
+    // Changed: Store in localStorage instead of sessionStorage
+    localStorage.setItem("gistToken", token);
   }
 
   persistGistId(gistId) {
     localStorage.setItem("gistId", gistId);
+  }
+
+  clearToken() {
+    localStorage.removeItem("gistToken");
   }
 
   async save(data) {
