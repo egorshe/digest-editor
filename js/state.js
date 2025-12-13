@@ -39,6 +39,7 @@ class DigestState {
       };
     }
     localStorage.setItem("digestState", JSON.stringify(this.data));
+    console.log("💾 State saved:", this.data.sections.length, "sections");
   }
 
   load() {
@@ -46,10 +47,17 @@ class DigestState {
     if (saved) {
       try {
         this.data = JSON.parse(saved);
+        console.log(
+          "✅ State loaded from localStorage:",
+          this.data.sections.length,
+          "sections",
+        );
       } catch (e) {
-        console.error("Error loading state", e);
+        console.error("❌ Error loading state:", e);
         this.data = { frontmatter: {}, sections: [] };
       }
+    } else {
+      console.log("ℹ️ No saved state found in localStorage");
     }
   }
 
@@ -202,10 +210,12 @@ class DigestState {
   }
 
   initDefaults() {
-    this.data.sections = [];
-    this.data.sections.push(this.createSectionObject("publications"));
-    this.data.sections.push(this.createSectionObject("conferences"));
-    this.data.sections.push(this.createSectionObject("news"));
+    // Only initialize if truly empty (no sections at all)
+    if (this.data.sections.length === 0) {
+      this.data.sections.push(this.createSectionObject("publications"));
+      this.data.sections.push(this.createSectionObject("conferences"));
+      this.data.sections.push(this.createSectionObject("news"));
+    }
     this.save();
     this.notify();
   }

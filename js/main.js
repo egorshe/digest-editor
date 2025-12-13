@@ -13,7 +13,8 @@ import * as UI from "./ui.js";
 window.onload = function () {
   state.load();
 
-  if (!state.get().frontmatter.title) {
+  // Only initialize defaults if completely empty (no sections)
+  if (state.get().sections.length === 0) {
     state.initDefaults();
   }
 
