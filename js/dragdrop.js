@@ -28,8 +28,11 @@ class DragDropManager {
         .get()
         .sections.findIndex((s) => s.id === e.currentTarget.dataset.sectionId);
 
+      console.log(`🔄 Moving section from index ${fromIdx} to ${toIdx}`);
+
       if (fromIdx !== toIdx && fromIdx !== -1 && toIdx !== -1) {
         state.moveSection(fromIdx, toIdx);
+        console.log("✅ Section moved successfully");
       }
     }
 
@@ -57,10 +60,10 @@ class DragDropManager {
         const toSec = state.findSection(targetSectionId);
 
         const fromEntryIdx = fromSec.entries.findIndex(
-          (e) => e.id === this.draggedEntry.dataset.entryId,
+          (entry) => entry.id === this.draggedEntry.dataset.entryId,
         );
         const toEntryIdx = toSec.entries.findIndex(
-          (e) => e.id === e.currentTarget.dataset.entryId,
+          (entry) => entry.id === e.currentTarget.dataset.entryId,
         );
 
         if (fromSec && toSec && fromEntryIdx !== -1 && toEntryIdx !== -1) {
