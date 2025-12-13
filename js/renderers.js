@@ -43,16 +43,16 @@ export function renderPublicationForm(sectionId, entry) {
   return html;
 }
 
-// --- NEW RENDERER FOR JOURNAL ISSUES ---
+// --- FIXED RENDERER FOR JOURNAL ISSUES ---
 export function renderJournalForm(sectionId, entry) {
   return `
     <div class="space-y-2 text-sm">
         <input type="text" value="${entry.journalName || ""}" placeholder="Journal Name" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'journalName', this.value)">
 
-        <div class="flex gap-2">
-            <input type="text" value="${entry.volume || ""}" placeholder="Vol" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'volume', this.value)">
-            <input type="text" value="${entry.issue || ""}" placeholder="Issue" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'issue', this.value)">
-            <input type="text" value="${entry.date || ""}" placeholder="Date" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'date', this.value)">
+        <div class="grid grid-cols-3 gap-2">
+            <input type="text" value="${entry.volume || ""}" placeholder="Vol" class="p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'volume', this.value)">
+            <input type="text" value="${entry.issue || ""}" placeholder="Issue" class="p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'issue', this.value)">
+            <input type="text" value="${entry.date || ""}" placeholder="Date" class="p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'date', this.value)">
         </div>
 
         <input type="text" value="${entry.theme || ""}" placeholder="Theme / Special Issue Title" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'theme', this.value)">
