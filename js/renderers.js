@@ -1,19 +1,19 @@
 export function renderPublicationForm(sectionId, entry) {
-    let html = '<div class="space-y-2 text-sm">';
-    
-    // Authors Loop
-    entry.authors.forEach((author, i) => {
-        html += `
+  let html = '<div class="space-y-2 text-sm">';
+
+  // Authors Loop
+  entry.authors.forEach((author, i) => {
+    html += `
         <div class="flex gap-2 items-center">
             <input type="text" value="${author.surname}" placeholder="Surname" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateAuthor('${sectionId}', '${entry.id}', ${i}, 'surname', this.value)">
             <input type="text" value="${author.name}" placeholder="Name" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateAuthor('${sectionId}', '${entry.id}', ${i}, 'name', this.value)">
             ${entry.authors.length > 1 ? `<button onclick="deleteAuthor('${sectionId}', '${entry.id}', ${i})" class="text-red-400 text-xs">✕</button>` : ""}
         </div>`;
-    });
-    html += `<button onclick="addAuthor('${sectionId}', '${entry.id}')" class="text-blue-400 text-xs hover:text-blue-300">+ Add Author</button>`;
+  });
+  html += `<button onclick="addAuthor('${sectionId}', '${entry.id}')" class="text-blue-400 text-xs hover:text-blue-300">+ Add Author</button>`;
 
-    // Pub Fields
-    html += `
+  // Pub Fields
+  html += `
     <input type="text" value="${entry.title || ""}" placeholder="Title" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'title', this.value)">
     <div class="flex gap-2">
         <select class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'pubType', this.value)">
@@ -27,7 +27,7 @@ export function renderPublicationForm(sectionId, entry) {
     </div>
     <input type="text" value="${entry.containerTitle || ""}" placeholder="Container Title" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'containerTitle', this.value)">
     <input type="text" value="${entry.publisher || ""}" placeholder="Publisher" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'publisher', this.value)">
-    
+
     <div class="flex gap-2">
         <input type="text" value="${entry.url || ""}" placeholder="URL/DOI" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'url', this.value)">
         <input type="text" value="${entry.urlText || "link"}" placeholder="Link text" class="w-24 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'urlText', this.value)">
@@ -37,26 +37,26 @@ export function renderPublicationForm(sectionId, entry) {
         <input type="checkbox" ${entry.openAccess ? "checked" : ""} onchange="updateEntry('${sectionId}', '${entry.id}', 'openAccess', this.checked)">
         <span class="text-xs font-bold text-green-300">Open Access</span>
     </label>
-    
+
     <textarea placeholder="Abstract" class="w-full p-2 bg-gray-600 rounded h-24 border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'abstract', this.value)">${entry.abstract || ""}</textarea>
     </div>`;
-    return html;
+  return html;
 }
 
 // --- NEW RENDERER FOR JOURNAL ISSUES ---
 export function renderJournalForm(sectionId, entry) {
-    return `
+  return `
     <div class="space-y-2 text-sm">
         <input type="text" value="${entry.journalName || ""}" placeholder="Journal Name" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'journalName', this.value)">
-        
+
         <div class="flex gap-2">
             <input type="text" value="${entry.volume || ""}" placeholder="Vol" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'volume', this.value)">
             <input type="text" value="${entry.issue || ""}" placeholder="Issue" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'issue', this.value)">
-            <input type="text" value="${entry.date || ""}" placeholder="Date (e.g. Summer 2025)" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'date', this.value)">
+            <input type="text" value="${entry.date || ""}" placeholder="Date" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'date', this.value)">
         </div>
 
         <input type="text" value="${entry.theme || ""}" placeholder="Theme / Special Issue Title" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'theme', this.value)">
-        
+
         <input type="text" value="${entry.guestEditor || ""}" placeholder="Guest Editor(s)" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'guestEditor', this.value)">
 
         <div class="flex gap-2">
@@ -75,14 +75,15 @@ export function renderJournalForm(sectionId, entry) {
 }
 
 export function renderEventForm(sectionId, entry) {
-    const isExhibition = entry.type === "exhibition";
-    const showTheme = !isExhibition;
-    let html = `<div class="space-y-2 text-sm">
+  const isExhibition = entry.type === "exhibition";
+  const showTheme = !isExhibition;
+  let html = `<div class="space-y-2 text-sm">
         <input type="text" value="${entry.title || ""}" placeholder="Title" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'title', this.value)">`;
-    
-    if (showTheme) html += `<input type="text" value="${entry.theme || ""}" placeholder="Theme" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'theme', this.value)">`;
 
-    html += `<div class="flex gap-2">
+  if (showTheme)
+    html += `<input type="text" value="${entry.theme || ""}" placeholder="Theme" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'theme', this.value)">`;
+
+  html += `<div class="flex gap-2">
         <input type="date" value="${entry.dateStart || ""}" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'dateStart', this.value)">
         <input type="date" value="${entry.dateEnd || ""}" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'dateEnd', this.value)">
     </div>
@@ -91,11 +92,11 @@ export function renderEventForm(sectionId, entry) {
     <input type="text" value="${entry.url || ""}" placeholder="URL" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'url', this.value)">
     <textarea placeholder="Description" class="w-full p-2 bg-gray-600 rounded h-20 border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'description', this.value)">${entry.description || ""}</textarea>
     </div>`;
-    return html;
+  return html;
 }
 
 export function renderCallForm(sectionId, entry) {
-    return `<div class="space-y-2 text-sm">
+  return `<div class="space-y-2 text-sm">
       <input type="text" value="${entry.title || ""}" placeholder="Title" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'title', this.value)">
       <input type="text" value="${entry.theme || ""}" placeholder="Theme" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'theme', this.value)">
       <input type="date" value="${entry.deadline || ""}" placeholder="Deadline" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'deadline', this.value)">
@@ -104,7 +105,7 @@ export function renderCallForm(sectionId, entry) {
 }
 
 export function renderMediaForm(sectionId, entry) {
-    return `<div class="space-y-2 text-sm">
+  return `<div class="space-y-2 text-sm">
       <input type="text" value="${entry.title || ""}" placeholder="Title" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'title', this.value)">
       <select class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'mediaType', this.value)">
         <option ${entry.mediaType === "Video" ? "selected" : ""}>Video</option>
@@ -118,7 +119,7 @@ export function renderMediaForm(sectionId, entry) {
 }
 
 export function renderTextForm(sectionId, entry) {
-    return `<div class="space-y-2 text-sm">
+  return `<div class="space-y-2 text-sm">
       <textarea placeholder="Content (Markdown)" class="w-full p-2 bg-gray-600 rounded h-32 border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'content', this.value)">${entry.content || ""}</textarea>
     </div>`;
 }
