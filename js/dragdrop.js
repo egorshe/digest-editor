@@ -1,5 +1,5 @@
-// js/dragdrop.js - Drag and drop functionality
 import { state } from "./state.js";
+import { renderSections } from "./main.js";
 
 class DragDropManager {
   constructor() {
@@ -18,7 +18,12 @@ class DragDropManager {
     e.stopPropagation();
     e.preventDefault();
 
-    if (this.draggedSection && e.currentTarget.dataset.sectionId) {
+    // FIXED: Added check to prevent dropping on self and ensure re-render
+    if (
+      this.draggedSection &&
+      e.currentTarget.dataset.sectionId &&
+      this.draggedSection !== e.currentTarget
+    ) {
       const fromIdx = state
         .get()
         .sections.findIndex(
@@ -28,11 +33,10 @@ class DragDropManager {
         .get()
         .sections.findIndex((s) => s.id === e.currentTarget.dataset.sectionId);
 
-      console.log(`🔄 Moving section from index ${fromIdx} to ${toIdx}`);
-
       if (fromIdx !== toIdx && fromIdx !== -1 && toIdx !== -1) {
         state.moveSection(fromIdx, toIdx);
-        console.log("✅ Section moved successfully");
+        // FIXED: Force re-render after drag
+        renderSections();
       }
     }
 
@@ -73,6 +77,8 @@ class DragDropManager {
             fromEntryIdx,
             toEntryIdx,
           );
+          // FIXED: Force re-render after drag
+          renderSections();
         }
       }
     }
@@ -85,6 +91,11 @@ class DragDropManager {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     e.currentTarget.classList.add("drag-over");
+  }
+
+  // FIXED: Added dragleave handler
+  handleDragLeave(e) {
+    e.currentTarget.classList.remove("drag-over");
   }
 
   handleDragEnd(e) {
@@ -110,6 +121,7 @@ class DragDropManager {
       this.handleSectionDragStart.bind(this),
     );
     element.addEventListener("dragover", this.handleDragOver.bind(this));
+    element.addEventListener("dragleave", this.handleDragLeave.bind(this));
     element.addEventListener("drop", this.handleSectionDrop.bind(this));
     element.addEventListener("dragend", this.handleDragEnd.bind(this));
   }
@@ -117,6 +129,7 @@ class DragDropManager {
   attachEntryListeners(element) {
     element.addEventListener("dragstart", this.handleEntryDragStart.bind(this));
     element.addEventListener("dragover", this.handleDragOver.bind(this));
+    element.addEventListener("dragleave", this.handleDragLeave.bind(this));
     element.addEventListener("drop", this.handleEntryDrop.bind(this));
     element.addEventListener("dragend", this.handleDragEnd.bind(this));
   }
