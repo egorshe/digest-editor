@@ -1,4 +1,3 @@
-// js/ui.js - UI helper functions and modals
 import { state } from "./state.js";
 import { gistManager } from "./gist.js";
 import { renderSections, updatePreview } from "./main.js";
@@ -11,8 +10,8 @@ export function openGistModal(action) {
   const title = document.getElementById("gistModalTitle");
   const button = document.getElementById("gistActionButton");
 
-  // Load persisted token/ID
-  const persistedToken = sessionStorage.getItem("gistToken");
+  // FIXED: Load from localStorage instead of sessionStorage
+  const persistedToken = localStorage.getItem("gistToken");
   const persistedId = localStorage.getItem("gistId");
 
   document.getElementById("gistToken").value = persistedToken || "";
