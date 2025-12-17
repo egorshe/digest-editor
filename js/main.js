@@ -100,7 +100,7 @@ window.updateAuthor = function (sectionId, entryId, idx, field, value) {
 };
 
 window.deleteAuthor = function (sectionId, entryId, idx) {
-  state.deleteAuthor(sectionId, entryId);
+  state.deleteAuthor(sectionId, entryId, idx);
   renderSections();
 };
 
