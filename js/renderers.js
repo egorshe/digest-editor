@@ -88,6 +88,7 @@ export function renderEventForm(sectionId, entry) {
   const isExhibition = entry.type === "exhibition";
   const isConference = entry.type === "conference";
   const showTheme = !isExhibition;
+
   let html = `<div class="space-y-2 text-sm">
         <input type="text" value="${entry.title || ""}" placeholder="Title" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onblur="updateEntry('${sectionId}', '${entry.id}', 'title', this.value)">`;
 
@@ -95,12 +96,14 @@ export function renderEventForm(sectionId, entry) {
     html += `<input type="text" value="${entry.theme || ""}" placeholder="Theme" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onblur="updateEntry('${sectionId}', '${entry.id}', 'theme', this.value)">`;
 
   html += `<div class="flex gap-2">
-        <input type="date" value="${entry.dateStart || ""}" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'dateStart', this.value)">
-        <input type="date" value="${entry.dateEnd || ""}" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'dateEnd', this.value)">
+        <input type="date" value="${entry.dateStart || ""}" placeholder="Start Date" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'dateStart', this.value)">
+        <input type="date" value="${entry.dateEnd || ""}" placeholder="End Date" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'dateEnd', this.value)">
     </div>`;
 
-  if (isConference)
+  // Always show CfP deadline field for conferences
+  if (isConference) {
     html += `<input type="date" value="${entry.cfpDeadline || ""}" placeholder="CfP Deadline" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entry.id}', 'cfpDeadline', this.value)">`;
+  }
 
   html += `<input type="text" value="${entry.place || ""}" placeholder="City, Country" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onblur="updateEntry('${sectionId}', '${entry.id}', 'place', this.value)">
     <input type="text" value="${entry.venue || ""}" placeholder="Venue" class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onblur="updateEntry('${sectionId}', '${entry.id}', 'venue', this.value)">
