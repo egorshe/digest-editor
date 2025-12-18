@@ -23,6 +23,11 @@ window.onload = function () {
   // Subscribe to state changes
   state.subscribe(() => {
     debouncedUpdatePreview();
+    // Update locations editor if it's open
+    const locationsContent = document.getElementById("locationsEditorContent");
+    if (locationsContent && !locationsContent.classList.contains("hidden")) {
+      UI.renderLocationsEditor();
+    }
   });
 
   renderSections();
@@ -121,6 +126,45 @@ window.downloadMarkdown = function () {
 window.openGistModal = UI.openGistModal;
 window.closeGistModal = UI.closeGistModal;
 window.gistAction = UI.performGistAction;
+
+// Locations editor functions
+window.toggleLocationsEditor = UI.toggleLocationsEditor;
+
+window.updateLocationEventType = function (sectionId, entryId, newType) {
+  state.updateEntry(sectionId, entryId, "type", newType);
+  renderSections();
+  UI.renderLocationsEditor();
+};
+
+window.updateLocationCity = function (sectionId, entryId, city) {
+  const section = state.findSection(sectionId);
+  if (!section) return;
+  const entry = section.entries.find((e) => e.id === entryId);
+  if (!entry) return;
+
+  // Parse existing place to preserve country
+  const parts = (entry.place || "").split(",").map((p) => p.trim());
+  const country = parts.length >= 2 ? parts[parts.length - 1] : "";
+
+  entry.place = country ? `${city}, ${country}` : city;
+  state.save();
+  state.notify();
+};
+
+window.updateLocationCountry = function (sectionId, entryId, country) {
+  const section = state.findSection(sectionId);
+  if (!section) return;
+  const entry = section.entries.find((e) => e.id === entryId);
+  if (!entry) return;
+
+  // Parse existing place to preserve city
+  const parts = (entry.place || "").split(",").map((p) => p.trim());
+  const city = parts[0] || "";
+
+  entry.place = country ? `${city}, ${country}` : city;
+  state.save();
+  state.notify();
+};
 
 // --- CORE RENDERING LOGIC ---
 export function renderSections() {

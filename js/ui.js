@@ -92,3 +92,137 @@ export function populateFrontmatterInputs() {
   document.getElementById("docTags").value = data.frontmatter.tags || "";
   document.getElementById("docDraft").value = data.frontmatter.draft || "true";
 }
+
+export function toggleLocationsEditor() {
+  const content = document.getElementById("locationsEditorContent");
+  const icon = document.getElementById("locationsToggleIcon");
+
+  if (content.classList.contains("hidden")) {
+    content.classList.remove("hidden");
+    icon.classList.add("rotated");
+    renderLocationsEditor();
+  } else {
+    content.classList.add("hidden");
+    icon.classList.remove("rotated");
+  }
+}
+
+export function renderLocationsEditor() {
+  const container = document.getElementById("locationsEditorContainer");
+  const data = state.get();
+
+  // Collect all events with their section/entry IDs for syncing
+  const eventLocations = [];
+  data.sections.forEach((section) => {
+    section.entries.forEach((entry) => {
+      if (["conference", "exhibition", "festival"].includes(entry.type)) {
+        eventLocations.push({
+          sectionId: section.id,
+          entryId: entry.id,
+          type: entry.type,
+          entry: entry,
+        });
+      }
+    });
+  });
+
+  if (eventLocations.length === 0) {
+    container.innerHTML =
+      '<p class="text-gray-500 text-sm">No events found. Add conferences, festivals, or exhibitions to edit their location data.</p>';
+    return;
+  }
+
+  container.innerHTML = eventLocations
+    .map((loc, idx) => {
+      const eventTypeLabel = getEventTypeLabel(loc.type);
+      const { city, country } = parsePlaceField(loc.entry.place);
+      const dateValue = formatEventDate(loc.entry.dateStart, loc.entry.dateEnd);
+
+      return `
+      <div class="p-4 bg-gray-700 rounded-lg border border-gray-600">
+        <div class="grid grid-cols-2 gap-3 text-sm">
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-400 mb-1">Event Type</label>
+            <select class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+                    onchange="updateLocationEventType('${loc.sectionId}', '${loc.entryId}', this.value)">
+              <option value="conference" ${loc.type === "conference" ? "selected" : ""}>Conference</option>
+              <option value="festival" ${loc.type === "festival" ? "selected" : ""}>Festival</option>
+              <option value="exhibition" ${loc.type === "exhibition" ? "selected" : ""}>Exhibition</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-400 mb-1">Title</label>
+            <input type="text" value="${loc.entry.title || ""}"
+                   class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+                   onblur="updateEntry('${loc.sectionId}', '${loc.entryId}', 'title', this.value)">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">City</label>
+            <input type="text" value="${city}"
+                   class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+                   onblur="updateLocationCity('${loc.sectionId}', '${loc.entryId}', this.value)">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Country</label>
+            <input type="text" value="${country}"
+                   class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+                   onblur="updateLocationCountry('${loc.sectionId}', '${loc.entryId}', this.value)">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-400 mb-1">Venue</label>
+            <input type="text" value="${loc.entry.venue || ""}"
+                   class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+                   onblur="updateEntry('${loc.sectionId}', '${loc.entryId}', 'venue', this.value)">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-400 mb-1">Coordinates (lat, lng)</label>
+            <input type="text" value="${loc.entry.coords || ""}"
+                   class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+                   placeholder="e.g., 52.5200, 13.4050"
+                   onblur="updateEntry('${loc.sectionId}', '${loc.entryId}', 'coords', this.value)">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-400 mb-1">Date/Date Range</label>
+            <input type="text" value="${dateValue}"
+                   class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+                   readonly disabled
+                   title="Edit dates in the event entry below">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-400 mb-1">Description</label>
+            <textarea class="w-full p-2 bg-gray-600 rounded h-20 border border-transparent focus:border-blue-500 focus:outline-none"
+                      onblur="updateEntry('${loc.sectionId}', '${loc.entryId}', 'description', this.value)">${loc.entry.description || ""}</textarea>
+          </div>
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+}
+
+// Helper functions for locations editor
+function getEventTypeLabel(type) {
+  const labels = {
+    conference: "Conference",
+    festival: "Festival",
+    exhibition: "Exhibition",
+  };
+  return labels[type] || "Event";
+}
+
+function parsePlaceField(place) {
+  if (!place) return { city: "", country: "" };
+  const parts = place.split(",").map((p) => p.trim());
+  if (parts.length >= 2) {
+    return { city: parts[0], country: parts[parts.length - 1] };
+  } else if (parts.length === 1) {
+    return { city: parts[0], country: "" };
+  }
+  return { city: "", country: "" };
+}
+
+function formatEventDate(dateStart, dateEnd) {
+  if (!dateStart) return "";
+  if (!dateEnd || dateStart === dateEnd) return dateStart;
+  return `${dateStart} to ${dateEnd}`;
+}
