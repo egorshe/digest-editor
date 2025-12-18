@@ -69,6 +69,7 @@ export function generateEventMarkdown(entry) {
   }
   if (entry.dateStart)
     md += `Dates: ${entry.dateStart}${entry.dateEnd ? " to " + entry.dateEnd : ""}  \n`;
+  if (entry.cfpDeadline) md += `CfP Deadline: ${entry.cfpDeadline}  \n`;
   if (entry.place)
     md += `Place: ${entry.place}${entry.venue ? ", " + entry.venue : ""}  \n`;
   if (entry.description) md += `Description: ${entry.description}  \n`;
