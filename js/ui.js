@@ -143,12 +143,15 @@ export function renderLocationsEditor() {
         <div class="grid grid-cols-2 gap-3 text-sm">
           <div class="col-span-2">
             <label class="block text-xs text-gray-400 mb-1">Event Type</label>
-            <select class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
-                    onchange="updateLocationEventType('${loc.sectionId}', '${loc.entryId}', this.value)">
-              <option value="conference" ${loc.type === "conference" ? "selected" : ""}>Conference</option>
-              <option value="festival" ${loc.type === "festival" ? "selected" : ""}>Festival</option>
-              <option value="exhibition" ${loc.type === "exhibition" ? "selected" : ""}>Exhibition</option>
-            </select>
+            <input type="text" value="${getEventTypeLabel(loc.type)}"
+                   list="eventTypesList"
+                   class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+                   onblur="updateLocationEventType('${loc.sectionId}', '${loc.entryId}', this.value.toLowerCase())">
+            <datalist id="eventTypesList">
+              <option value="Conference">
+              <option value="Festival">
+              <option value="Exhibition">
+            </datalist>
           </div>
           <div class="col-span-2">
             <label class="block text-xs text-gray-400 mb-1">Title</label>
