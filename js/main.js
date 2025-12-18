@@ -339,7 +339,7 @@ export function updatePreview() {
       md += `  - title: "${loc.title}"\n`;
       md += `    city: "${loc.city}"\n`;
       md += `    venue: "${loc.venue}"\n`;
-      md += `    coords: []\n`;
+      md += `    coords: ${JSON.stringify(loc.coords)}\n`;
       md += `    country: "${loc.country}"\n`;
       md += `    date: "${loc.date}"\n`;
       md += `    description: "${loc.description}"\n`;
