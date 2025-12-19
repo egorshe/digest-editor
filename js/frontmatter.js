@@ -46,6 +46,15 @@ export function collectLocations(sections) {
   return locations;
 }
 
+function parseCoordinates(coords) {
+  return coords
+    ? coords
+        .split(",")
+        .map((c) => parseFloat(c.trim()))
+        .filter((n) => !isNaN(n))
+    : [];
+}
+
 function parsePlaceField(place) {
   if (!place) return { city: "", country: "" };
   const parts = place.split(",").map((p) => p.trim());
