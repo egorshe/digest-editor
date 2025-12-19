@@ -134,25 +134,27 @@ export function renderLocationsEditor() {
 
   container.innerHTML = eventLocations
     .map((loc, idx) => {
-      const eventTypeLabel = getEventTypeLabel(loc.type);
+      const eventTypeLabel = getEventTypeLabel(loc.entry);
       const { city, country } = parsePlaceField(loc.entry.place);
       const dateValue = formatEventDate(loc.entry.dateStart, loc.entry.dateEnd);
 
       return `
       <div class="p-4 bg-gray-700 rounded-lg border border-gray-600">
         <div class="grid grid-cols-2 gap-3 text-sm">
-          <div class="col-span-2">
-            <label class="block text-xs text-gray-400 mb-1">Event Type</label>
-            <input type="text" value="${getEventTypeLabel(loc.type)}"
-                   list="eventTypesList"
-                   class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
-                   onblur="updateLocationEventType('${loc.sectionId}', '${loc.entryId}', this.value.toLowerCase())">
-            <datalist id="eventTypesList">
-              <option value="Conference">
-              <option value="Festival">
-              <option value="Exhibition">
-            </datalist>
-          </div>
+        <div class="col-span-2">
+          <label class="block text-xs text-gray-400 mb-1">Event Type</label>
+          <input type="text" value="${loc.entry.customEventType || loc.type}"
+                 list="eventTypesList"
+                 class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+                 onblur="updateLocationEventType('${loc.sectionId}', '${loc.entryId}', this.value)">
+          <datalist id="eventTypesList">
+            <option value="conference">
+            <option value="festival">
+            <option value="exhibition">
+            <option value="summer school">
+            <option value="workshop">
+          </datalist>
+        </div>
           <div class="col-span-2">
             <label class="block text-xs text-gray-400 mb-1">Title</label>
             <input type="text" value="${loc.entry.title || ""}"

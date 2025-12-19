@@ -132,7 +132,19 @@ window.gistAction = UI.performGistAction;
 window.toggleLocationsEditor = UI.toggleLocationsEditor;
 
 window.updateLocationEventType = function (sectionId, entryId, newType) {
-  state.updateEntry(sectionId, entryId, "type", newType);
+  const normalizedType = newType.toLowerCase();
+  const validTypes = ["conference", "festival", "exhibition"];
+
+  if (validTypes.includes(normalizedType)) {
+    // It's a standard type, clear custom label
+    state.updateEntry(sectionId, entryId, "type", normalizedType);
+    state.updateEntry(sectionId, entryId, "customEventType", "");
+  } else {
+    // It's a custom type, keep as conference but store custom label
+    state.updateEntry(sectionId, entryId, "type", "conference");
+    state.updateEntry(sectionId, entryId, "customEventType", newType);
+  }
+
   renderSections();
   UI.renderLocationsEditor();
 };

@@ -29,18 +29,13 @@ export function collectLocations(sections) {
     section.entries.forEach((entry) => {
       if (["conference", "exhibition", "festival"].includes(entry.type)) {
         const { city, country } = parsePlaceField(entry.place);
-        const eventType = getEventTypeLabel(entry.type);
+        const eventType = getEventTypeLabel(entry); // Pass entry instead of just type
 
         locations.push({
           title: entry.title ? `${eventType}: ${entry.title}` : eventType,
           city: city,
           venue: entry.venue || "",
-          coords: entry.coords
-            ? entry.coords
-                .split(",")
-                .map((c) => parseFloat(c.trim()))
-                .filter((n) => !isNaN(n))
-            : [],
+          coords: parseCoordinates(entry.coords),
           country: country,
           date: formatEventDate(entry.dateStart, entry.dateEnd),
           description: entry.description || "",
@@ -68,11 +63,16 @@ function formatEventDate(dateStart, dateEnd) {
   return `${dateStart} to ${dateEnd}`;
 }
 
-function getEventTypeLabel(type) {
+function getEventTypeLabel(entry) {
+  // Use custom event type if it exists, otherwise use default labels
+  if (entry.customEventType) {
+    return entry.customEventType;
+  }
+
   const labels = {
     conference: "Conference",
     festival: "Festival",
     exhibition: "Exhibition",
   };
-  return labels[type] || "Event";
+  return labels[entry.type] || "Event";
 }
