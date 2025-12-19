@@ -1,21 +1,37 @@
-export function generateFrontmatter(data, locations) {
-  let md = "---\n";
-  md += `layout: digest-entry\n`;
-  md += `title: "${data.frontmatter.title || "Untitled"}"\n`;
-  md += `date: ${data.frontmatter.date || "2025-01-01"}\n`;
-  md += `tags: [${data.frontmatter.tags || ""}]\n`;
-  md += `draft: ${data.frontmatter.draft || "true"}\n`;
+// frontmatter.js
 
-  if (locations.length > 0) {
-    md += `locations:\n`;
+export function yamlEscape(value = "") {
+  return String(value)
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\n+/g, " ")
+    .trim();
+}
+
+export function generateFrontmatter(frontmatter, locations = []) {
+  let md = "---\n";
+
+  md += `layout: digest-entry\n`;
+  md += `title: \"${yamlEscape(frontmatter.title || "Untitled")}\"\n`;
+  md += `date: \"${frontmatter.date || "2025-01-01"}\"\n`;
+
+  const tags = Array.isArray(frontmatter.tags)
+    ? frontmatter.tags.map((t) => `\"${yamlEscape(t)}\"`).join(", ")
+    : "";
+  md += `tags: [${tags}]\n`;
+
+  md += `draft: ${frontmatter.draft ?? true}\n`;
+
+  if (locations.length) {
+    md += "locations:\n";
     locations.forEach((loc) => {
-      md += `  - title: "${loc.title}"\n`;
-      md += `    city: "${loc.city}"\n`;
-      md += `    venue: "${loc.venue}"\n`;
-      md += `    coords: ${JSON.stringify(loc.coords)}\n`;
-      md += `    country: "${loc.country}"\n`;
-      md += `    date: "${loc.date}"\n`;
-      md += `    description: "${loc.description}"\n`;
+      md += `  - title: \"${yamlEscape(loc.title)}\"\n`;
+      md += `    city: \"${yamlEscape(loc.city)}\"\n`;
+      md += `    venue: \"${yamlEscape(loc.venue)}\"\n`;
+      md += `    country: \"${yamlEscape(loc.country)}\"\n`;
+      md += `    date: \"${yamlEscape(loc.date)}\"\n`;
+      md += `    coords: [${(loc.coords || []).join(", ")}]\n`;
+      md += `    description: \"${yamlEscape(loc.description)}\"\n`;
     });
   }
 
@@ -23,26 +39,59 @@ export function generateFrontmatter(data, locations) {
   return md;
 }
 
-export function collectLocations(sections) {
-  const locations = [];
-  sections.forEach((section) => {
-    section.entries.forEach((entry) => {
-      if (["conference", "exhibition", "festival"].includes(entry.type)) {
-        const { city, country } = parsePlaceField(entry.place);
-        const eventType = getEventTypeLabel(entry); // Pass entry instead of just type
+// generator.js
 
-        locations.push({
-          title: entry.title ? `${eventType}: ${entry.title}` : eventType,
-          city: city,
-          venue: entry.venue || "",
-          coords: parseCoordinates(entry.coords),
-          country: country,
-          date: formatEventDate(entry.dateStart, entry.dateEnd),
-          description: entry.description || "",
-        });
-      }
+export function generateDigestMarkdown(state) {
+  const locations = collectLocations(state.sections || []);
+
+  let md = generateFrontmatter(state.frontmatter, locations);
+
+  // canonical body
+  md += `# ${state.frontmatter.title || "Untitled"}\n\n`;
+
+  (state.sections || []).forEach((section) => {
+    md += `## ${section.title}\n\n`;
+
+    (section.entries || []).forEach((entry) => {
+      md += `### ${entry.title}\n`;
+      if (entry.description) md += `${entry.description}\n`;
+      md += "\n";
     });
   });
+
+  return md;
+}
+
+// locations.js
+
+export function collectLocations(sections) {
+  const locations = [];
+
+  sections.forEach((section) => {
+    (section.entries || []).forEach((entry) => {
+      if (!["conference", "festival", "exhibition"].includes(entry.type))
+        return;
+
+      const { city, country } = parsePlaceField(entry.place);
+
+      const typeLabel =
+        entry.customEventType ||
+        entry.type.charAt(0).toUpperCase() + entry.type.slice(1);
+
+      const entryTitle = entry.title || "Untitled";
+
+      locations.push({
+        title: `${typeLabel}: ${entryTitle}`,
+        city,
+        venue: entry.venue || "",
+        country,
+        coords: parseCoordinates(entry.coords),
+        date: formatEventDate(entry.dateStart, entry.dateEnd),
+        description: entry.description || "",
+      });
+    });
+  });
+
   return locations;
 }
 
@@ -58,30 +107,12 @@ function parseCoordinates(coords) {
 function parsePlaceField(place) {
   if (!place) return { city: "", country: "" };
   const parts = place.split(",").map((p) => p.trim());
-  if (parts.length >= 2) {
-    return { city: parts[0], country: parts[parts.length - 1] };
-  } else if (parts.length === 1) {
-    return { city: parts[0], country: "" };
-  }
-  return { city: "", country: "" };
+  return parts.length >= 2
+    ? { city: parts[0], country: parts[parts.length - 1] }
+    : { city: parts[0], country: "" };
 }
 
-function formatEventDate(dateStart, dateEnd) {
-  if (!dateStart) return "";
-  if (!dateEnd || dateStart === dateEnd) return dateStart;
-  return `${dateStart} to ${dateEnd}`;
-}
-
-function getEventTypeLabel(entry) {
-  // Use custom event type if it exists, otherwise use default labels
-  if (entry.customEventType) {
-    return entry.customEventType;
-  }
-
-  const labels = {
-    conference: "Conference",
-    festival: "Festival",
-    exhibition: "Exhibition",
-  };
-  return labels[entry.type] || "Event";
+function formatEventDate(start, end) {
+  if (!start) return "";
+  return !end || start === end ? start : `${start} to ${end}`;
 }

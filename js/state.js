@@ -28,18 +28,22 @@ class DigestState {
   }
 
   save() {
-    // Capture frontmatter from DOM if available
     const titleEl = document.getElementById("docTitle");
     if (titleEl) {
       this.data.frontmatter = {
         title: document.getElementById("docTitle").value,
         date: document.getElementById("docDate").value,
-        tags: document.getElementById("docTags").value,
-        draft: document.getElementById("docDraft").value,
+        tags: document
+          .getElementById("docTags")
+          .value.split(",")
+          .map((t) => t.trim())
+          .filter((t) => t),
+        draft: document.getElementById("docDraft").value === "true",
       };
     }
     localStorage.setItem("digestState", JSON.stringify(this.data));
-    console.log("💾 State saved:", this.data.sections.length, "sections");
+    console.log("💾 State saved and notifying preview...");
+    this.notify(); // FIX: Added this to trigger the preview update
   }
 
   load() {

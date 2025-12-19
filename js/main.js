@@ -37,9 +37,7 @@ window.onload = function () {
 };
 
 // --- GLOBAL EXPORTS FOR HTML ONCLICK ---
-window.saveState = function () {
-  state.save();
-};
+window.saveState = () => state.save();
 
 window.resetState = function () {
   if (
@@ -155,13 +153,11 @@ window.updateLocationCity = function (sectionId, entryId, city) {
   const entry = section.entries.find((e) => e.id === entryId);
   if (!entry) return;
 
-  // Parse existing place to preserve country
   const parts = (entry.place || "").split(",").map((p) => p.trim());
   const country = parts.length >= 2 ? parts[parts.length - 1] : "";
-
   entry.place = country ? `${city}, ${country}` : city;
-  state.save();
-  state.notify();
+
+  state.save(); // This now calls notify() automatically
 };
 
 window.updateLocationCountry = function (sectionId, entryId, country) {
@@ -170,13 +166,11 @@ window.updateLocationCountry = function (sectionId, entryId, country) {
   const entry = section.entries.find((e) => e.id === entryId);
   if (!entry) return;
 
-  // Parse existing place to preserve city
   const parts = (entry.place || "").split(",").map((p) => p.trim());
   const city = parts[0] || "";
-
   entry.place = country ? `${city}, ${country}` : city;
+
   state.save();
-  state.notify();
 };
 
 // --- CORE RENDERING LOGIC ---
@@ -281,7 +275,7 @@ function renderAddSectionMenu() {
 export function updatePreview() {
   const data = state.get();
   const locations = Frontmatter.collectLocations(data.sections);
-  let md = Frontmatter.generateFrontmatter(data, locations);
+  let md = Frontmatter.generateFrontmatter(data.frontmatter, locations);
 
   data.sections.forEach((section) => {
     if (section.entries.length === 0) return;
