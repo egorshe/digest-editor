@@ -157,7 +157,7 @@ window.handleZoteroImport = Importers.handleZoteroImport;
 
 window.downloadMarkdown = function () {
   const md = document.getElementById("preview").textContent;
-  Exporters.downloadMarkdown(md);
+  Exporters.exportMarkdown(md);
 };
 
 // Gist operations
