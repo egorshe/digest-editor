@@ -1,4 +1,73 @@
 // Reusable component functions
+function renderImportance(sectionId, entry, stage = "edit") {
+  // In capture mode, hide importance controls
+  if (stage === "capture") return "";
+
+  return `
+    <div class="flex items-center gap-2 text-xs">
+      <span class="text-gray-400">Importance</span>
+      <div class="flex gap-1">
+        ${[1, 2, 3]
+          .map(
+            (lvl) => `
+          <button
+            type="button"
+            class="px-2 py-1 rounded ${
+              (entry.importance ?? 2) === lvl
+                ? "bg-blue-500 text-white"
+                : "bg-gray-700 text-gray-300"
+            }"
+            onclick="updateEntry('${sectionId}', '${entry.id}', 'importance', ${lvl})"
+            title="${lvl === 3 ? "Major" : lvl === 2 ? "Normal" : "Minor"}"
+          >
+            ${lvl}
+          </button>
+        `,
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderEditorialFields(sectionId, entry, stage = "edit") {
+  // In capture mode, hide editorial fields (add them later in edit mode)
+  if (stage === "capture") return "";
+
+  return `
+    <div class="space-y-2 pt-2 border-t border-gray-600">
+      <div class="flex items-center gap-2 text-xs text-amber-400">
+        <span>✎</span>
+        <span class="font-semibold">Editorial Context</span>
+      </div>
+      ${renderTextarea(
+        entry.whyItMatters,
+        "Why it matters (1 sentence — optional but encouraged)",
+        sectionId,
+        entry.id,
+        "whyItMatters",
+        "h-16",
+      )}
+      ${renderSelect(
+        [
+          "",
+          "institutional",
+          "methodological",
+          "funding",
+          "event",
+          "debate",
+          "resource",
+        ],
+        entry.signal || "",
+        sectionId,
+        entry.id,
+        "signal",
+        "w-full",
+      ).replace("<select", '<select title="Signal tag (optional)"')}
+    </div>
+  `;
+}
+
 function renderInput(
   value,
   placeholder,
@@ -48,8 +117,9 @@ function renderCheckbox(checked, label, sectionId, entryId, field) {
   </label>`;
 }
 
-export function renderPublicationForm(sectionId, entry) {
+export function renderPublicationForm(sectionId, entry, stage = "edit") {
   let html = '<div class="space-y-2 text-sm">';
+  html += renderImportance(sectionId, entry, stage);
 
   // Authors Loop
   entry.authors.forEach((author, i) => {
@@ -65,65 +135,68 @@ export function renderPublicationForm(sectionId, entry) {
   // Publication Fields
   html += renderInput(entry.title, "Title", sectionId, entry.id, "title");
 
-  html += `<div class="flex gap-2">`;
-  html += renderSelect(
-    ["Book", "Article", "Chapter", "Thesis", "Online Article"],
-    entry.pubType,
-    sectionId,
-    entry.id,
-    "pubType",
-  );
-  html += renderInput(
-    entry.date,
-    "Date",
-    sectionId,
-    entry.id,
-    "date",
-    "flex-1",
-  );
-  html += `</div>`;
-
-  const containerPlaceholder =
-    entry.pubType === "Article" || entry.pubType === "Online Article"
-      ? "Journal Title"
-      : "Container Title";
-  html += renderInput(
-    entry.containerTitle,
-    containerPlaceholder,
-    sectionId,
-    entry.id,
-    "containerTitle",
-  );
-
-  // Volume/Issue fields for Articles
-  if (entry.pubType === "Article" || entry.pubType === "Online Article") {
+  // In capture mode, hide some detailed fields
+  if (stage !== "capture") {
     html += `<div class="flex gap-2">`;
-    html += renderInput(
-      entry.volume,
-      "Volume",
+    html += renderSelect(
+      ["Book", "Article", "Chapter", "Thesis", "Online Article"],
+      entry.pubType,
       sectionId,
       entry.id,
-      "volume",
-      "flex-1",
+      "pubType",
     );
     html += renderInput(
-      entry.issue,
-      "Issue",
+      entry.date,
+      "Date",
       sectionId,
       entry.id,
-      "issue",
+      "date",
       "flex-1",
     );
     html += `</div>`;
-  }
 
-  html += renderInput(
-    entry.publisher,
-    "Publisher",
-    sectionId,
-    entry.id,
-    "publisher",
-  );
+    const containerPlaceholder =
+      entry.pubType === "Article" || entry.pubType === "Online Article"
+        ? "Journal Title"
+        : "Container Title";
+    html += renderInput(
+      entry.containerTitle,
+      containerPlaceholder,
+      sectionId,
+      entry.id,
+      "containerTitle",
+    );
+
+    // Volume/Issue fields for Articles
+    if (entry.pubType === "Article" || entry.pubType === "Online Article") {
+      html += `<div class="flex gap-2">`;
+      html += renderInput(
+        entry.volume,
+        "Volume",
+        sectionId,
+        entry.id,
+        "volume",
+        "flex-1",
+      );
+      html += renderInput(
+        entry.issue,
+        "Issue",
+        sectionId,
+        entry.id,
+        "issue",
+        "flex-1",
+      );
+      html += `</div>`;
+    }
+
+    html += renderInput(
+      entry.publisher,
+      "Publisher",
+      sectionId,
+      entry.id,
+      "publisher",
+    );
+  }
 
   html += `<div class="flex gap-2">`;
   html += renderInput(
@@ -134,37 +207,45 @@ export function renderPublicationForm(sectionId, entry) {
     "url",
     "flex-1",
   );
-  html += renderInput(
-    entry.urlText || "link",
-    "Link text",
-    sectionId,
-    entry.id,
-    "urlText",
-    "w-24",
-  );
+  if (stage !== "capture") {
+    html += renderInput(
+      entry.urlText || "link",
+      "Link text",
+      sectionId,
+      entry.id,
+      "urlText",
+      "w-24",
+    );
+  }
   html += `</div>`;
 
-  html += renderCheckbox(
-    entry.openAccess,
-    "Open Access",
-    sectionId,
-    entry.id,
-    "openAccess",
-  );
-  html += renderTextarea(
-    entry.abstract,
-    "Abstract",
-    sectionId,
-    entry.id,
-    "abstract",
-  );
+  if (stage !== "capture") {
+    html += renderCheckbox(
+      entry.openAccess,
+      "Open Access",
+      sectionId,
+      entry.id,
+      "openAccess",
+    );
+    html += renderTextarea(
+      entry.abstract,
+      "Abstract",
+      sectionId,
+      entry.id,
+      "abstract",
+    );
+  }
+
+  // Add editorial fields (hidden in capture mode)
+  html += renderEditorialFields(sectionId, entry, stage);
 
   html += "</div>";
   return html;
 }
 
-export function renderJournalForm(sectionId, entry) {
+export function renderJournalForm(sectionId, entry, stage = "edit") {
   let html = '<div class="space-y-2 text-sm">';
+  html += renderImportance(sectionId, entry, stage);
 
   html += renderInput(
     entry.journalName,
@@ -201,62 +282,72 @@ export function renderJournalForm(sectionId, entry) {
   );
   html += `</div>`;
 
-  html += renderInput(
-    entry.theme,
-    "Theme / Special Issue Title",
-    sectionId,
-    entry.id,
-    "theme",
-  );
-  html += renderInput(
-    entry.guestEditor,
-    "Guest Editor(s)",
-    sectionId,
-    entry.id,
-    "guestEditor",
-  );
+  if (stage !== "capture") {
+    html += renderInput(
+      entry.theme,
+      "Theme / Special Issue Title",
+      sectionId,
+      entry.id,
+      "theme",
+    );
+    html += renderInput(
+      entry.guestEditor,
+      "Guest Editor(s)",
+      sectionId,
+      entry.id,
+      "guestEditor",
+    );
+  }
 
   html += `<div class="flex gap-2">`;
   html += renderInput(entry.url, "URL", sectionId, entry.id, "url", "flex-1");
-  html += renderInput(
-    entry.urlText || "Link",
-    "Link text",
-    sectionId,
-    entry.id,
-    "urlText",
-    "w-24",
-  );
+  if (stage !== "capture") {
+    html += renderInput(
+      entry.urlText || "Link",
+      "Link text",
+      sectionId,
+      entry.id,
+      "urlText",
+      "w-24",
+    );
+  }
   html += `</div>`;
 
-  html += renderCheckbox(
-    entry.openAccess,
-    "Open Access",
-    sectionId,
-    entry.id,
-    "openAccess",
-  );
-  html += renderTextarea(
-    entry.description,
-    "Description",
-    sectionId,
-    entry.id,
-    "description",
-  );
+  if (stage !== "capture") {
+    html += renderCheckbox(
+      entry.openAccess,
+      "Open Access",
+      sectionId,
+      entry.id,
+      "openAccess",
+    );
+    html += renderTextarea(
+      entry.description,
+      "Description",
+      sectionId,
+      entry.id,
+      "description",
+    );
+  }
+
+  // Add editorial fields
+  html += renderEditorialFields(sectionId, entry, stage);
 
   html += "</div>";
   return html;
 }
 
-export function renderEventForm(sectionId, entry) {
+export function renderEventForm(sectionId, entry, stage = "edit") {
   const isExhibition = entry.type === "exhibition";
   const isConference = entry.type === "conference";
   const showTheme = !isExhibition;
 
   let html = '<div class="space-y-2 text-sm">';
+  html += renderImportance(sectionId, entry, stage);
 
   html += renderInput(entry.title, "Title", sectionId, entry.id, "title");
 
-  if (showTheme) {
+  if (showTheme && stage !== "capture") {
     html += renderInput(entry.theme, "Theme", sectionId, entry.id, "theme");
   }
 
@@ -265,7 +356,7 @@ export function renderEventForm(sectionId, entry) {
   html += renderDateInput(entry.dateEnd, sectionId, entry.id, "dateEnd");
   html += `</div>`;
 
-  if (isConference) {
+  if (isConference && stage !== "capture") {
     html += renderDateInput(
       entry.cfpDeadline,
       sectionId,
@@ -281,33 +372,48 @@ export function renderEventForm(sectionId, entry) {
     entry.id,
     "place",
   );
-  html += renderInput(entry.venue, "Venue", sectionId, entry.id, "venue");
-  html += renderInput(
-    entry.coords,
-    "Coordinates (lat, lng)",
-    sectionId,
-    entry.id,
-    "coords",
-  );
+
+  if (stage !== "capture") {
+    html += renderInput(entry.venue, "Venue", sectionId, entry.id, "venue");
+    html += renderInput(
+      entry.coords,
+      "Coordinates (lat, lng)",
+      sectionId,
+      entry.id,
+      "coords",
+    );
+  }
+
   html += renderInput(entry.url, "URL", sectionId, entry.id, "url");
-  html += renderTextarea(
-    entry.description,
-    "Description",
-    sectionId,
-    entry.id,
-    "description",
-    "h-20",
-  );
+
+  if (stage !== "capture") {
+    html += renderTextarea(
+      entry.description,
+      "Description",
+      sectionId,
+      entry.id,
+      "description",
+      "h-20",
+    );
+  }
+
+  // Add editorial fields
+  html += renderEditorialFields(sectionId, entry, stage);
 
   html += "</div>";
   return html;
 }
 
-export function renderCallForm(sectionId, entry) {
+export function renderCallForm(sectionId, entry, stage = "edit") {
   let html = '<div class="space-y-2 text-sm">';
+  html += renderImportance(sectionId, entry, stage);
 
   html += renderInput(entry.title, "Title", sectionId, entry.id, "title");
-  html += renderInput(entry.theme, "Theme", sectionId, entry.id, "theme");
+
+  if (stage !== "capture") {
+    html += renderInput(entry.theme, "Theme", sectionId, entry.id, "theme");
+  }
+
   html += renderDateInput(
     entry.deadline,
     sectionId,
@@ -316,53 +422,73 @@ export function renderCallForm(sectionId, entry) {
   ).replace("flex-1", "w-full");
   html += renderInput(entry.url, "URL", sectionId, entry.id, "url");
 
+  // Add editorial fields
+  html += renderEditorialFields(sectionId, entry, stage);
+
   html += "</div>";
   return html;
 }
 
-export function renderMediaForm(sectionId, entry) {
+export function renderMediaForm(sectionId, entry, stage = "edit") {
   let html = '<div class="space-y-2 text-sm">';
 
+  html += renderImportance(sectionId, entry, stage);
   html += renderInput(entry.title, "Title", sectionId, entry.id, "title");
-  html += renderSelect(
-    ["Video", "Podcast", "Audio"],
-    entry.mediaType,
-    sectionId,
-    entry.id,
-    "mediaType",
-    "w-full",
-  );
-  html += renderInput(
-    entry.creator,
-    "Creator/Host",
-    sectionId,
-    entry.id,
-    "creator",
-  );
+
+  if (stage !== "capture") {
+    html += renderSelect(
+      ["Video", "Podcast", "Audio"],
+      entry.mediaType,
+      sectionId,
+      entry.id,
+      "mediaType",
+      "w-full",
+    );
+    html += renderInput(
+      entry.creator,
+      "Creator/Host",
+      sectionId,
+      entry.id,
+      "creator",
+    );
+  }
+
   html += renderInput(entry.url, "URL", sectionId, entry.id, "url");
-  html += renderTextarea(
-    entry.description,
-    "Description",
-    sectionId,
-    entry.id,
-    "description",
-    "h-20",
-  );
+
+  if (stage !== "capture") {
+    html += renderTextarea(
+      entry.description,
+      "Description",
+      sectionId,
+      entry.id,
+      "description",
+      "h-20",
+    );
+  }
+
+  // Add editorial fields
+  html += renderEditorialFields(sectionId, entry, stage);
 
   html += "</div>";
   return html;
 }
 
-export function renderTextForm(sectionId, entry) {
+export function renderTextForm(sectionId, entry, stage = "edit") {
   let html = '<div class="space-y-2 text-sm">';
+  html += renderImportance(sectionId, entry, stage);
+
   html += renderTextarea(
     entry.content,
     "Content (Markdown)",
     sectionId,
     entry.id,
     "content",
-    "h-32",
+    stage === "capture" ? "h-20" : "h-32",
   );
+
+  // Add editorial fields
+  html += renderEditorialFields(sectionId, entry, stage);
+
   html += "</div>";
   return html;
 }

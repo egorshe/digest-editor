@@ -31,13 +31,21 @@ window.onload = function () {
     }
   });
 
+  UI.renderStageSwitcher();
   renderSections();
   renderAddSectionMenu();
   updatePreview();
+  UI.updateStageUI();
 };
 
 // --- GLOBAL EXPORTS FOR HTML ONCLICK ---
 window.saveState = () => state.save();
+
+window.setStage = function (stage) {
+  state.setStage(stage);
+  renderSections();
+  UI.updateStageUI();
+};
 
 window.resetState = function () {
   if (
@@ -60,6 +68,19 @@ window.resetState = function () {
 };
 
 window.addSection = function (type) {
+  // Check if section type already exists
+  const existingSection = state.get().sections.find((s) => s.type === type);
+  if (existingSection) {
+    const sectionName = sectionTypes[type]?.title || type;
+    if (
+      !UI.showConfirmDialog(
+        `A "${sectionName}" section already exists. Are you sure you want to create another one?`,
+      )
+    ) {
+      return; // User canceled
+    }
+  }
+
   state.addSection(type);
   renderSections();
 };
@@ -67,6 +88,20 @@ window.addSection = function (type) {
 window.addCustomSection = function () {
   const title = UI.showPromptDialog("Enter Custom Section Title:");
   if (title) {
+    // Check if a section with this exact title already exists
+    const existingSection = state
+      .get()
+      .sections.find((s) => s.title.toLowerCase() === title.toLowerCase());
+    if (existingSection) {
+      if (
+        !UI.showConfirmDialog(
+          `A section named "${title}" already exists. Create another one with the same name?`,
+        )
+      ) {
+        return; // User canceled
+      }
+    }
+
     state.addSection("custom", title);
     renderSections();
   }
@@ -91,6 +126,10 @@ window.deleteEntry = function (sectionId, entryId) {
 
 window.updateEntry = function (sectionId, entryId, field, value) {
   state.updateEntry(sectionId, entryId, field, value);
+  // For immediate visual feedback on importance buttons
+  if (field === "importance") {
+    renderSections();
+  }
 };
 
 // Author operations
@@ -157,7 +196,7 @@ window.updateLocationCity = function (sectionId, entryId, city) {
   const country = parts.length >= 2 ? parts[parts.length - 1] : "";
   entry.place = country ? `${city}, ${country}` : city;
 
-  state.save(); // This now calls notify() automatically
+  state.save();
 };
 
 window.updateLocationCountry = function (sectionId, entryId, country) {
@@ -240,18 +279,20 @@ function getEntryConfig(type) {
 }
 
 function renderEntryForm(sectionId, entry) {
+  const stage = state.getStage ? state.getStage() : "edit";
+
   if (entry.type === "publication") {
-    return Renderers.renderPublicationForm(sectionId, entry);
+    return Renderers.renderPublicationForm(sectionId, entry, stage);
   } else if (entry.type === "journalIssue") {
-    return Renderers.renderJournalForm(sectionId, entry);
+    return Renderers.renderJournalForm(sectionId, entry, stage);
   } else if (["conference", "exhibition", "festival"].includes(entry.type)) {
-    return Renderers.renderEventForm(sectionId, entry);
+    return Renderers.renderEventForm(sectionId, entry, stage);
   } else if (entry.type === "callForPapers") {
-    return Renderers.renderCallForm(sectionId, entry);
+    return Renderers.renderCallForm(sectionId, entry, stage);
   } else if (entry.type === "media") {
-    return Renderers.renderMediaForm(sectionId, entry);
+    return Renderers.renderMediaForm(sectionId, entry, stage);
   } else {
-    return Renderers.renderTextForm(sectionId, entry);
+    return Renderers.renderTextForm(sectionId, entry, stage);
   }
 }
 
@@ -277,10 +318,24 @@ export function updatePreview() {
   const locations = Frontmatter.collectLocations(data.sections);
   let md = Frontmatter.generateFrontmatter(data.frontmatter, locations);
 
+  // Generate Table of Contents
+  md += "## Table of Contents\n\n";
+  data.sections.forEach((section) => {
+    if (section.entries.length > 0) {
+      const anchor = section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      md += `- [${section.title}](#${anchor})\n`;
+    }
+  });
+  md += "\n";
+
   data.sections.forEach((section) => {
     if (section.entries.length === 0) return;
     md += `## ${section.title}\n\n`;
-    section.entries.forEach((entry) => {
+
+    // SORT ENTRIES BY IMPORTANCE
+    const sortedEntries = sortEntries(section.entries);
+
+    sortedEntries.forEach((entry) => {
       if (entry.type === "publication") {
         md += Generators.generatePublicationMarkdown(entry);
       } else if (entry.type === "journalIssue") {
@@ -300,6 +355,24 @@ export function updatePreview() {
   });
 
   document.getElementById("preview").textContent = md;
+}
+
+// Sort entries by importance, then date, then title
+function sortEntries(entries) {
+  return [...entries].sort((a, b) => {
+    // Sort by importance (1 first, then 2, then 3)
+    if ((b.importance || 2) !== (a.importance || 2)) {
+      return (a.importance || 2) - (b.importance || 2);
+    }
+
+    // Then by date (newest first)
+    if (a.date && b.date && a.date !== b.date) {
+      return new Date(b.date) - new Date(a.date);
+    }
+
+    // Then by title alphabetically
+    return (a.title || "").localeCompare(b.title || "");
+  });
 }
 
 // Debounced preview update (300ms delay)

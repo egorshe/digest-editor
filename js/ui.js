@@ -51,14 +51,7 @@ export async function performGistAction() {
       state.update(loadedState);
 
       // Re-populate Frontmatter inputs
-      document.getElementById("docTitle").value =
-        state.get().frontmatter.title || "";
-      document.getElementById("docDate").value =
-        state.get().frontmatter.date || "";
-      document.getElementById("docTags").value =
-        state.get().frontmatter.tags || "";
-      document.getElementById("docDraft").value =
-        state.get().frontmatter.draft || "true";
+      populateFrontmatterInputs();
 
       renderSections();
       updatePreview();
@@ -87,10 +80,20 @@ export function showAlert(message) {
 
 export function populateFrontmatterInputs() {
   const data = state.get();
-  document.getElementById("docTitle").value = data.frontmatter.title || "";
-  document.getElementById("docDate").value = data.frontmatter.date || "";
-  document.getElementById("docTags").value = data.frontmatter.tags || "";
-  document.getElementById("docDraft").value = data.frontmatter.draft || "true";
+  const fm = data.frontmatter || {};
+
+  document.getElementById("docTitle").value = fm.title || "";
+  document.getElementById("docDate").value = fm.date || "";
+
+  // Handle tags - could be array or string
+  if (Array.isArray(fm.tags)) {
+    document.getElementById("docTags").value = fm.tags.join(", ");
+  } else {
+    document.getElementById("docTags").value = fm.tags || "";
+  }
+
+  document.getElementById("docDraft").value =
+    fm.draft !== undefined ? String(fm.draft) : "true";
 }
 
 export function toggleLocationsEditor() {
@@ -203,6 +206,102 @@ export function renderLocationsEditor() {
     `;
     })
     .join("");
+}
+
+// --- STAGE SYSTEM UI ---
+export function renderStageSwitcher() {
+  const container = document.getElementById("stageSwitcherContainer");
+  if (!container) return;
+
+  const currentStage = state.getStage ? state.getStage() : "edit";
+
+  container.innerHTML = `
+    <div class="mb-4 p-3 bg-gray-800 rounded-lg border border-gray-700">
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-xs font-semibold text-gray-400 whitespace-nowrap">Workflow:</span>
+        <div class="flex gap-2 flex-1">
+          <button
+            data-stage="capture"
+            class="stage-btn flex-1 px-3 py-1.5 rounded text-sm font-medium transition ${
+              currentStage === "capture"
+                ? "bg-green-600 text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }">
+            ⚡ Capture
+          </button>
+          <button
+            data-stage="edit"
+            class="stage-btn flex-1 px-3 py-1.5 rounded text-sm font-medium transition ${
+              currentStage === "edit"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }">
+            ✎ Edit
+          </button>
+          <button
+            data-stage="preview"
+            class="stage-btn flex-1 px-3 py-1.5 rounded text-sm font-medium transition ${
+              currentStage === "preview"
+                ? "bg-purple-600 text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }">
+            👁 Preview
+          </button>
+        </div>
+        <span class="text-xs text-gray-400 hidden md:block" style="min-width: 240px;">
+          ${getStageDescription(currentStage)}
+        </span>
+      </div>
+    </div>
+  `;
+
+  // Attach event listeners after rendering
+  container.querySelectorAll(".stage-btn").forEach((btn) => {
+    btn.addEventListener("click", function () {
+      const stage = this.getAttribute("data-stage");
+      if (window.setStage) {
+        window.setStage(stage);
+      }
+    });
+  });
+}
+
+function getStageDescription(stage) {
+  const descriptions = {
+    capture: "Fast input mode — just dump links & basic info",
+    edit: "Full editing — refine, organize, add context",
+    preview: "Reader view — see final output, export when ready",
+  };
+  return descriptions[stage] || "";
+}
+
+export function updateStageUI() {
+  const currentStage = state.getStage ? state.getStage() : "edit";
+
+  // Update stage switcher buttons
+  renderStageSwitcher();
+
+  // Show/hide UI elements based on stage
+  const addSectionMenu = document.getElementById("addSectionMenuContainer");
+  const sectionsContainer = document.getElementById("sectionsContainer");
+  const previewContainer = document.getElementById("previewContainer");
+
+  if (currentStage === "capture") {
+    // Capture mode: show simplified forms, emphasize quick add
+    if (addSectionMenu) addSectionMenu.style.display = "block";
+    if (sectionsContainer) sectionsContainer.classList.remove("preview-mode");
+    if (previewContainer) previewContainer.classList.remove("preview-emphasis");
+  } else if (currentStage === "edit") {
+    // Edit mode: full forms, all controls visible
+    if (addSectionMenu) addSectionMenu.style.display = "block";
+    if (sectionsContainer) sectionsContainer.classList.remove("preview-mode");
+    if (previewContainer) previewContainer.classList.remove("preview-emphasis");
+  } else if (currentStage === "preview") {
+    // Preview mode: hide editing UI, emphasize markdown output
+    if (addSectionMenu) addSectionMenu.style.display = "none";
+    if (sectionsContainer) sectionsContainer.classList.add("preview-mode");
+    if (previewContainer) previewContainer.classList.add("preview-emphasis");
+  }
 }
 
 // Helper functions for locations editor

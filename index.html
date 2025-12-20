@@ -31,6 +31,12 @@
             #locationsToggleIcon.rotated {
                 transform: rotate(-180deg);
             }
+            .preview-mode {
+                opacity: 0.8;
+            }
+            .preview-emphasis {
+                border: 2px solid #8b5cf6;
+            }
         </style>
     </head>
     <body class="bg-gray-900 text-gray-100">
@@ -87,6 +93,9 @@
                             ⬇️ Markdown
                         </button>
                     </div>
+
+                    <!-- STAGE SWITCHER - NEW! -->
+                    <div id="stageSwitcherContainer"></div>
 
                     <div class="mb-8 p-4 bg-gray-800 rounded-lg shadow-lg">
                         <h2 class="text-xl font-bold mb-4 text-blue-300">
@@ -184,7 +193,10 @@
                 </div>
             </div>
 
-            <div class="w-1/2 overflow-y-auto p-6 bg-gray-950">
+            <div
+                id="previewContainer"
+                class="w-1/2 overflow-y-auto p-6 bg-gray-950"
+            >
                 <div class="max-w-3xl mx-auto">
                     <h2 class="text-2xl font-bold mb-4 text-blue-400">
                         Preview

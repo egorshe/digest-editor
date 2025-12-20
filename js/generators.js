@@ -16,7 +16,6 @@ export function generatePublicationMarkdown(entry) {
   }
 
   if (entry.containerTitle) md += ` *${entry.containerTitle}*`;
-  // FIXED: Add Volume and Issue to markdown output
   if (entry.volume) md += `, Vol. ${entry.volume}`;
   if (entry.issue) md += `, No. ${entry.issue}`;
   if (entry.publisher) md += `, ${entry.publisher}`;
@@ -25,6 +24,14 @@ export function generatePublicationMarkdown(entry) {
 
   if (entry.url) md += ` [${entry.urlText || "link"}](${entry.url})`;
   md += "\n";
+
+  // Editorial fields
+  if (entry.whyItMatters) {
+    md += `*${entry.whyItMatters}*\n`;
+  }
+  if (entry.signal) {
+    md += `**Signal**: ${entry.signal}\n`;
+  }
 
   if (entry.abstract) {
     md += `<details markdown="1"><summary>Abstract</summary>\n${entry.abstract}\n</details>\n`;
@@ -52,6 +59,14 @@ export function generateJournalMarkdown(entry) {
     md += `${entry.description}  \n`;
   }
 
+  // Editorial fields
+  if (entry.whyItMatters) {
+    md += `*${entry.whyItMatters}*  \n`;
+  }
+  if (entry.signal) {
+    md += `**Signal**: ${entry.signal}  \n`;
+  }
+
   if (entry.url) {
     md += `[${entry.urlText || "Link"}](${entry.url})`;
   }
@@ -73,6 +88,15 @@ export function generateEventMarkdown(entry) {
   if (entry.place)
     md += `Place: ${entry.place}${entry.venue ? ", " + entry.venue : ""}  \n`;
   if (entry.description) md += `Description: ${entry.description}  \n`;
+
+  // Editorial fields
+  if (entry.whyItMatters) {
+    md += `*${entry.whyItMatters}*  \n`;
+  }
+  if (entry.signal) {
+    md += `**Signal**: ${entry.signal}  \n`;
+  }
+
   if (entry.url) md += `[Website](${entry.url})  \n`;
   md += "\n";
   return md;
@@ -82,6 +106,15 @@ export function generateCallMarkdown(entry) {
   let md = "";
   if (entry.title) md += `**${entry.title}** - ${entry.theme || ""}  \n`;
   if (entry.deadline) md += `Deadline: ${entry.deadline}  \n`;
+
+  // Editorial fields
+  if (entry.whyItMatters) {
+    md += `*${entry.whyItMatters}*  \n`;
+  }
+  if (entry.signal) {
+    md += `**Signal**: ${entry.signal}  \n`;
+  }
+
   if (entry.url) md += `[Apply](${entry.url})  \n`;
   md += "\n";
   return md;
@@ -93,6 +126,15 @@ export function generateMediaMarkdown(entry) {
     md += `**${entry.title}** (${entry.mediaType || "Media"})  \n`;
   if (entry.creator) md += `By: ${entry.creator}  \n`;
   if (entry.description) md += `${entry.description}  \n`;
+
+  // Editorial fields
+  if (entry.whyItMatters) {
+    md += `*${entry.whyItMatters}*  \n`;
+  }
+  if (entry.signal) {
+    md += `**Signal**: ${entry.signal}  \n`;
+  }
+
   if (entry.url) md += `[Watch/Listen](${entry.url})  \n`;
   md += "\n";
   return md;

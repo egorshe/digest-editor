@@ -5,6 +5,7 @@ import { generateId } from "./utils.js";
 class DigestState {
   constructor() {
     this.data = {
+      stage: "edit", // 'capture' | 'edit' | 'preview'
       frontmatter: {},
       sections: [],
     };
@@ -17,7 +18,13 @@ class DigestState {
 
   update(newData) {
     this.data = newData;
-    this.save();
+    // Ensure stage exists
+    if (!this.data.stage) {
+      this.data.stage = "edit";
+    }
+    // Don't call save() here - it would overwrite frontmatter from DOM
+    // Instead, directly save to localStorage
+    localStorage.setItem("digestState", JSON.stringify(this.data));
     this.notify();
   }
 
@@ -43,7 +50,8 @@ class DigestState {
     }
     localStorage.setItem("digestState", JSON.stringify(this.data));
     console.log("💾 State saved and notifying preview...");
-    this.notify(); // FIX: Added this to trigger the preview update
+    // PRIORITY 3 FIX: Removed duplicate notify() call
+    this.notify();
   }
 
   load() {
@@ -51,6 +59,10 @@ class DigestState {
     if (saved) {
       try {
         this.data = JSON.parse(saved);
+        // Ensure stage exists for backward compatibility
+        if (!this.data.stage) {
+          this.data.stage = "edit";
+        }
         console.log(
           "✅ State loaded from localStorage:",
           this.data.sections.length,
@@ -58,10 +70,11 @@ class DigestState {
         );
       } catch (e) {
         console.error("❌ Error loading state:", e);
-        this.data = { frontmatter: {}, sections: [] };
+        this.data = { stage: "edit", frontmatter: {}, sections: [] };
       }
     } else {
       console.log("ℹ️ No saved state found in localStorage");
+      this.data = { stage: "edit", frontmatter: {}, sections: [] };
     }
   }
 
@@ -107,7 +120,13 @@ class DigestState {
     const section = this.findSection(sectionId);
     if (!section) return null;
 
-    const entry = { id: generateId(), type: type };
+    const entry = {
+      id: generateId(),
+      type: type,
+      importance: 2, // 1 = minor, 2 = normal, 3 = major
+      whyItMatters: "", // Editorial: 1-sentence context
+      signal: "", // Editorial: categorical signal
+    };
 
     // Initialize defaults based on type
     if (type === "publication") {
@@ -148,8 +167,15 @@ class DigestState {
     const entry = section.entries.find((e) => e.id === entryId);
     if (!entry) return;
 
-    // Handle checkbox value conversion
-    entry[field] = typeof entry[field] === "boolean" ? !!value : value;
+    // PRIORITY 3 FIX: Better checkbox handling
+    // Check if the field is meant to be boolean
+    const booleanFields = ["openAccess", "draft"];
+    if (booleanFields.includes(field)) {
+      entry[field] = !!value;
+    } else {
+      entry[field] = value;
+    }
+
     this.save();
     this.notify();
   }
@@ -220,14 +246,32 @@ class DigestState {
       this.data.sections.push(this.createSectionObject("conferences"));
       this.data.sections.push(this.createSectionObject("news"));
     }
+    // Ensure stage exists (for backward compatibility)
+    if (!this.data.stage) {
+      this.data.stage = "edit";
+    }
     this.save();
     this.notify();
   }
 
   reset() {
-    this.data = { frontmatter: {}, sections: [] };
+    this.data = { stage: "edit", frontmatter: {}, sections: [] };
     localStorage.removeItem("digestState");
     this.notify();
+  }
+
+  // Stage management
+  setStage(stage) {
+    if (!this.data.stage) {
+      this.data.stage = "edit";
+    }
+    this.data.stage = stage;
+    this.save();
+    this.notify();
+  }
+
+  getStage() {
+    return this.data.stage || "edit";
   }
 }
 
