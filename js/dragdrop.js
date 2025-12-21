@@ -18,7 +18,6 @@ class DragDropManager {
     e.stopPropagation();
     e.preventDefault();
 
-    // FIXED: Added check to prevent dropping on self and ensure re-render
     if (
       this.draggedSection &&
       e.currentTarget.dataset.sectionId &&
@@ -35,7 +34,6 @@ class DragDropManager {
 
       if (fromIdx !== toIdx && fromIdx !== -1 && toIdx !== -1) {
         state.moveSection(fromIdx, toIdx);
-        // FIXED: Force re-render after drag
         renderSections();
       }
     }
@@ -44,13 +42,6 @@ class DragDropManager {
   }
 
   // Entry drag handlers
-  handleEntryDragStart(e) {
-    this.draggedEntry = e.currentTarget;
-    e.currentTarget.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-    e.stopPropagation();
-  }
-
   handleEntryDrop(e) {
     e.stopPropagation();
     e.preventDefault();
@@ -77,7 +68,6 @@ class DragDropManager {
             fromEntryIdx,
             toEntryIdx,
           );
-          // FIXED: Force re-render after drag
           renderSections();
         }
       }
@@ -93,7 +83,6 @@ class DragDropManager {
     e.currentTarget.classList.add("drag-over");
   }
 
-  // FIXED: Added dragleave handler
   handleDragLeave(e) {
     e.currentTarget.classList.remove("drag-over");
   }
@@ -114,7 +103,7 @@ class DragDropManager {
     this.draggedEntry = null;
   }
 
-  // Attach listeners to elements
+  // Attach listeners to sections
   attachSectionListeners(element) {
     element.addEventListener(
       "dragstart",
@@ -126,12 +115,22 @@ class DragDropManager {
     element.addEventListener("dragend", this.handleDragEnd.bind(this));
   }
 
-  attachEntryListeners(element) {
-    element.addEventListener("dragstart", this.handleEntryDragStart.bind(this));
+  // Attach listeners to entries (drag only from handle)
+  attachEntryListeners(element, dragHandle) {
+    // Only the drag handle initiates drag
+    dragHandle.addEventListener("dragstart", (e) => {
+      this.draggedEntry = element;
+      element.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.stopPropagation();
+    });
+
+    dragHandle.addEventListener("dragend", this.handleDragEnd.bind(this));
+
+    // Drop events on the whole entry div
     element.addEventListener("dragover", this.handleDragOver.bind(this));
     element.addEventListener("dragleave", this.handleDragLeave.bind(this));
     element.addEventListener("drop", this.handleEntryDrop.bind(this));
-    element.addEventListener("dragend", this.handleDragEnd.bind(this));
   }
 }
 

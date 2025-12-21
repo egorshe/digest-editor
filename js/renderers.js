@@ -1,6 +1,5 @@
 // Reusable component functions
 function renderImportance(sectionId, entry, stage = "edit") {
-  // In capture mode, hide importance controls
   if (stage === "capture") return "";
 
   return `
@@ -31,7 +30,6 @@ function renderImportance(sectionId, entry, stage = "edit") {
 }
 
 function renderEditorialFields(sectionId, entry, stage = "edit") {
-  // In capture mode, hide editorial fields (add them later in edit mode)
   if (stage === "capture") return "";
 
   return `
@@ -42,7 +40,7 @@ function renderEditorialFields(sectionId, entry, stage = "edit") {
       </div>
       ${renderTextarea(
         entry.whyItMatters,
-        "Why it matters (1 sentence — optional but encouraged)",
+        "Why it matters (1 sentence – optional but encouraged)",
         sectionId,
         entry.id,
         "whyItMatters",
@@ -68,6 +66,7 @@ function renderEditorialFields(sectionId, entry, stage = "edit") {
   `;
 }
 
+// FIXED: Back to value but we'll handle focus preservation differently
 function renderInput(
   value,
   placeholder,
@@ -76,7 +75,16 @@ function renderInput(
   field,
   width = "w-full",
 ) {
-  return `<input type="text" value="${value || ""}" placeholder="${placeholder}" class="${width} p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onblur="updateEntry('${sectionId}', '${entryId}', '${field}', this.value)">`;
+  const escapedValue = (value || "").replace(/"/g, "&quot;");
+  return `<input
+    type="text"
+    value="${escapedValue}"
+    placeholder="${placeholder}"
+    class="${width} p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+    data-section="${sectionId}"
+    data-entry="${entryId}"
+    data-field="${field}"
+  >`;
 }
 
 function renderTextarea(
@@ -87,11 +95,28 @@ function renderTextarea(
   field,
   height = "h-24",
 ) {
-  return `<textarea placeholder="${placeholder}" class="w-full p-2 bg-gray-600 rounded ${height} border border-transparent focus:border-blue-500 focus:outline-none" onblur="updateEntry('${sectionId}', '${entryId}', '${field}', this.value)">${value || ""}</textarea>`;
+  const escapedValue = (value || "")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return `<textarea
+    placeholder="${placeholder}"
+    class="w-full p-2 bg-gray-600 rounded ${height} border border-transparent focus:border-blue-500 focus:outline-none"
+    data-section="${sectionId}"
+    data-entry="${entryId}"
+    data-field="${field}"
+  >${escapedValue}</textarea>`;
 }
 
 function renderDateInput(value, sectionId, entryId, field) {
-  return `<input type="date" value="${value || ""}" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entryId}', '${field}', this.value)">`;
+  const escapedValue = (value || "").replace(/"/g, "&quot;");
+  return `<input
+    type="date"
+    value="${escapedValue}"
+    class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+    data-section="${sectionId}"
+    data-entry="${entryId}"
+    data-field="${field}"
+  >`;
 }
 
 function renderSelect(
@@ -102,7 +127,12 @@ function renderSelect(
   field,
   width = "flex-1",
 ) {
-  let html = `<select class="${width} p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onchange="updateEntry('${sectionId}', '${entryId}', '${field}', this.value)">`;
+  let html = `<select
+    class="${width} p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+    data-section="${sectionId}"
+    data-entry="${entryId}"
+    data-field="${field}"
+  >`;
   options.forEach((opt) => {
     html += `<option ${selected === opt ? "selected" : ""}>${opt}</option>`;
   });
@@ -112,7 +142,13 @@ function renderSelect(
 
 function renderCheckbox(checked, label, sectionId, entryId, field) {
   return `<label class="flex items-center gap-2 pt-1 cursor-pointer">
-    <input type="checkbox" ${checked ? "checked" : ""} onchange="updateEntry('${sectionId}', '${entryId}', '${field}', this.checked)">
+    <input
+      type="checkbox"
+      ${checked ? "checked" : ""}
+      data-section="${sectionId}"
+      data-entry="${entryId}"
+      data-field="${field}"
+    >
     <span class="text-xs font-bold text-green-300">${label}</span>
   </label>`;
 }
@@ -123,19 +159,35 @@ export function renderPublicationForm(sectionId, entry, stage = "edit") {
 
   // Authors Loop
   entry.authors.forEach((author, i) => {
+    const escapedSurname = (author.surname || "").replace(/"/g, "&quot;");
+    const escapedName = (author.name || "").replace(/"/g, "&quot;");
     html += `
         <div class="flex gap-2 items-center">
-            <input type="text" value="${author.surname}" placeholder="Surname" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onblur="updateAuthor('${sectionId}', '${entry.id}', ${i}, 'surname', this.value)">
-            <input type="text" value="${author.name}" placeholder="Name" class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none" onblur="updateAuthor('${sectionId}', '${entry.id}', ${i}, 'name', this.value)">
+            <input
+              type="text"
+              value="${escapedSurname}"
+              placeholder="Surname"
+              class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+              data-section="${sectionId}"
+              data-entry="${entry.id}"
+              data-field="author-${i}-surname"
+            >
+            <input
+              type="text"
+              value="${escapedName}"
+              placeholder="Name"
+              class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+              data-section="${sectionId}"
+              data-entry="${entry.id}"
+              data-field="author-${i}-name"
+            >
             ${entry.authors.length > 1 ? `<button onclick="deleteAuthor('${sectionId}', '${entry.id}', ${i})" class="text-red-400 text-xs">✕</button>` : ""}
         </div>`;
   });
   html += `<button onclick="addAuthor('${sectionId}', '${entry.id}')" class="text-blue-400 text-xs hover:text-blue-300">+ Add Author</button>`;
 
-  // Publication Fields
   html += renderInput(entry.title, "Title", sectionId, entry.id, "title");
 
-  // In capture mode, hide some detailed fields
   if (stage !== "capture") {
     html += `<div class="flex gap-2">`;
     html += renderSelect(
@@ -167,7 +219,6 @@ export function renderPublicationForm(sectionId, entry, stage = "edit") {
       "containerTitle",
     );
 
-    // Volume/Issue fields for Articles
     if (entry.pubType === "Article" || entry.pubType === "Online Article") {
       html += `<div class="flex gap-2">`;
       html += renderInput(
@@ -236,7 +287,6 @@ export function renderPublicationForm(sectionId, entry, stage = "edit") {
     );
   }
 
-  // Add editorial fields (hidden in capture mode)
   html += renderEditorialFields(sectionId, entry, stage);
 
   html += "</div>";
@@ -330,7 +380,6 @@ export function renderJournalForm(sectionId, entry, stage = "edit") {
     );
   }
 
-  // Add editorial fields
   html += renderEditorialFields(sectionId, entry, stage);
 
   html += "</div>";
@@ -397,7 +446,6 @@ export function renderEventForm(sectionId, entry, stage = "edit") {
     );
   }
 
-  // Add editorial fields
   html += renderEditorialFields(sectionId, entry, stage);
 
   html += "</div>";
@@ -422,7 +470,6 @@ export function renderCallForm(sectionId, entry, stage = "edit") {
   ).replace("flex-1", "w-full");
   html += renderInput(entry.url, "URL", sectionId, entry.id, "url");
 
-  // Add editorial fields
   html += renderEditorialFields(sectionId, entry, stage);
 
   html += "</div>";
@@ -466,7 +513,6 @@ export function renderMediaForm(sectionId, entry, stage = "edit") {
     );
   }
 
-  // Add editorial fields
   html += renderEditorialFields(sectionId, entry, stage);
 
   html += "</div>";
@@ -486,7 +532,6 @@ export function renderTextForm(sectionId, entry, stage = "edit") {
     stage === "capture" ? "h-20" : "h-32",
   );
 
-  // Add editorial fields
   html += renderEditorialFields(sectionId, entry, stage);
 
   html += "</div>";

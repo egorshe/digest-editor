@@ -1,6 +1,6 @@
-// js/main.js - Refactored main application file
+// js/main.js - Cleaned version
 import { state } from "./state.js";
-import { debounce } from "./utils.js";
+import { debounce, sortEntries } from "./utils.js";
 import { sectionTypes } from "./config.js";
 import * as Renderers from "./renderers.js";
 import * as Generators from "./generators.js";
@@ -14,17 +14,19 @@ import * as Frontmatter from "./frontmatter.js";
 window.onload = function () {
   state.load();
 
-  // Only initialize defaults if completely empty (no sections)
   if (state.get().sections.length === 0) {
     state.initDefaults();
   }
 
   UI.populateFrontmatterInputs();
 
-  // Subscribe to state changes
+  // Subscribe to state changes with debounced save
+  const debouncedSave = debounce(() => state.save(), 1000);
+
   state.subscribe(() => {
+    debouncedSave();
     debouncedUpdatePreview();
-    // Update locations editor if it's open
+
     const locationsContent = document.getElementById("locationsEditorContent");
     if (locationsContent && !locationsContent.classList.contains("hidden")) {
       UI.renderLocationsEditor();
@@ -68,7 +70,6 @@ window.resetState = function () {
 };
 
 window.addSection = function (type) {
-  // Check if section type already exists
   const existingSection = state.get().sections.find((s) => s.type === type);
   if (existingSection) {
     const sectionName = sectionTypes[type]?.title || type;
@@ -77,7 +78,7 @@ window.addSection = function (type) {
         `A "${sectionName}" section already exists. Are you sure you want to create another one?`,
       )
     ) {
-      return; // User canceled
+      return;
     }
   }
 
@@ -88,7 +89,6 @@ window.addSection = function (type) {
 window.addCustomSection = function () {
   const title = UI.showPromptDialog("Enter Custom Section Title:");
   if (title) {
-    // Check if a section with this exact title already exists
     const existingSection = state
       .get()
       .sections.find((s) => s.title.toLowerCase() === title.toLowerCase());
@@ -98,7 +98,7 @@ window.addCustomSection = function () {
           `A section named "${title}" already exists. Create another one with the same name?`,
         )
       ) {
-        return; // User canceled
+        return;
       }
     }
 
@@ -126,7 +126,7 @@ window.deleteEntry = function (sectionId, entryId) {
 
 window.updateEntry = function (sectionId, entryId, field, value) {
   state.updateEntry(sectionId, entryId, field, value);
-  // For immediate visual feedback on importance buttons
+  // Only re-render for importance changes (button clicks)
   if (field === "importance") {
     renderSections();
   }
@@ -173,11 +173,9 @@ window.updateLocationEventType = function (sectionId, entryId, newType) {
   const validTypes = ["conference", "festival", "exhibition"];
 
   if (validTypes.includes(normalizedType)) {
-    // It's a standard type, clear custom label
     state.updateEntry(sectionId, entryId, "type", normalizedType);
     state.updateEntry(sectionId, entryId, "customEventType", "");
   } else {
-    // It's a custom type, keep as conference but store custom label
     state.updateEntry(sectionId, entryId, "type", "conference");
     state.updateEntry(sectionId, entryId, "customEventType", newType);
   }
@@ -215,6 +213,10 @@ window.updateLocationCountry = function (sectionId, entryId, country) {
 // --- CORE RENDERING LOGIC ---
 export function renderSections() {
   const container = document.getElementById("sectionsContainer");
+
+  // Store scroll position
+  const scrollTop = container.scrollTop;
+
   container.innerHTML = "";
 
   state.get().sections.forEach((section) => {
@@ -224,7 +226,6 @@ export function renderSections() {
     sectionDiv.draggable = true;
     sectionDiv.dataset.sectionId = section.id;
 
-    // Drag Events
     dragDropManager.attachSectionListeners(sectionDiv);
 
     let html = `
@@ -236,16 +237,21 @@ export function renderSections() {
           </div>
         `;
 
-    // Type-specific "Add" buttons
     const entryConfig = getEntryConfig(section.type);
     html += `<button onclick="addEntry('${section.id}', '${entryConfig.type}')" class="mb-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition font-medium">+ Add ${entryConfig.text}</button>`;
 
     html += '<div class="space-y-4">';
 
-    // Entries
     section.entries.forEach((entry, idx) => {
-      html += `<div class="p-3 bg-gray-750 bg-gray-700/50 rounded border border-gray-600 cursor-move hover:border-gray-500 transition" draggable="true" data-entry-id="${entry.id}" data-section-id="${section.id}">`;
-      html += `<div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-400 font-mono">:: Entry ${idx + 1}</span><button onclick="deleteEntry('${section.id}', '${entry.id}')" class="text-red-400 hover:text-red-300 text-xs">✕</button></div>`;
+      html += `<div class="p-3 bg-gray-750 bg-gray-700/50 rounded border border-gray-600 hover:border-gray-500 transition" draggable="false" data-entry-id="${entry.id}" data-section-id="${section.id}">`;
+
+      html += `<div class="flex justify-between items-center mb-2">
+        <div class="flex items-center gap-2">
+          <span class="entry-drag-handle cursor-move text-gray-500 hover:text-white text-sm select-none" draggable="true" title="Drag to reorder">⋮⋮</span>
+          <span class="text-xs text-gray-400 font-mono">Entry ${idx + 1}</span>
+        </div>
+        <button onclick="deleteEntry('${section.id}', '${entry.id}')" class="text-red-400 hover:text-red-300 text-xs">✕</button>
+      </div>`;
 
       html += renderEntryForm(section.id, entry);
       html += "</div>";
@@ -255,11 +261,63 @@ export function renderSections() {
     sectionDiv.innerHTML = html;
     container.appendChild(sectionDiv);
 
-    // Entry Drag Listeners
-    sectionDiv.querySelectorAll("[data-entry-id]").forEach((el) => {
-      dragDropManager.attachEntryListeners(el);
+    // Disable section drag when mouse is over inputs (prevents accidental drag)
+    sectionDiv.querySelectorAll("input, textarea, select").forEach((input) => {
+      input.addEventListener("mouseenter", () => {
+        sectionDiv.draggable = false;
+      });
+      input.addEventListener("mouseleave", () => {
+        sectionDiv.draggable = true;
+      });
+    });
+
+    // Attach entry drag listeners
+    sectionDiv.querySelectorAll("[data-entry-id]").forEach((entryDiv) => {
+      const dragHandle = entryDiv.querySelector(".entry-drag-handle");
+      if (dragHandle) {
+        dragDropManager.attachEntryListeners(entryDiv, dragHandle);
+      }
+
+      // Attach blur/change listeners for form inputs
+      entryDiv
+        .querySelectorAll(
+          "input[data-field], textarea[data-field], select[data-field]",
+        )
+        .forEach((input) => {
+          const sectionId = input.dataset.section;
+          const entryId = input.dataset.entry;
+          const field = input.dataset.field;
+
+          // Handle author fields specially
+          if (field.startsWith("author-")) {
+            const parts = field.split("-");
+            const authorIdx = parseInt(parts[1]);
+            const authorField = parts[2];
+
+            input.addEventListener("blur", () => {
+              updateAuthor(
+                sectionId,
+                entryId,
+                authorIdx,
+                authorField,
+                input.value,
+              );
+            });
+          } else {
+            // Regular fields
+            const eventType = input.type === "checkbox" ? "change" : "blur";
+            input.addEventListener(eventType, () => {
+              const value =
+                input.type === "checkbox" ? input.checked : input.value;
+              updateEntry(sectionId, entryId, field, value);
+            });
+          }
+        });
     });
   });
+
+  // Restore scroll position
+  container.scrollTop = scrollTop;
 }
 
 function getEntryConfig(type) {
@@ -318,7 +376,6 @@ export function updatePreview() {
   const locations = Frontmatter.collectLocations(data.sections);
   let md = Frontmatter.generateFrontmatter(data.frontmatter, locations);
 
-  // Generate Table of Contents
   md += "## Table of Contents\n\n";
   data.sections.forEach((section) => {
     if (section.entries.length > 0) {
@@ -332,7 +389,6 @@ export function updatePreview() {
     if (section.entries.length === 0) return;
     md += `## ${section.title}\n\n`;
 
-    // SORT ENTRIES BY IMPORTANCE
     const sortedEntries = sortEntries(section.entries);
 
     sortedEntries.forEach((entry) => {
@@ -357,23 +413,4 @@ export function updatePreview() {
   document.getElementById("preview").textContent = md;
 }
 
-// Sort entries by importance, then date, then title
-function sortEntries(entries) {
-  return [...entries].sort((a, b) => {
-    // Sort by importance (1 first, then 2, then 3)
-    if ((b.importance || 2) !== (a.importance || 2)) {
-      return (a.importance || 2) - (b.importance || 2);
-    }
-
-    // Then by date (newest first)
-    if (a.date && b.date && a.date !== b.date) {
-      return new Date(b.date) - new Date(a.date);
-    }
-
-    // Then by title alphabetically
-    return (a.title || "").localeCompare(b.title || "");
-  });
-}
-
-// Debounced preview update (300ms delay)
 const debouncedUpdatePreview = debounce(updatePreview, 300);

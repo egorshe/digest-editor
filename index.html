@@ -37,6 +37,45 @@
             .preview-emphasis {
                 border: 2px solid #8b5cf6;
             }
+
+            /* FIXED: Prevent text selection on drag handles and buttons */
+            .entry-drag-handle,
+            button,
+            .cursor-move {
+                user-select: none;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+            }
+
+            /* FIXED: Ensure text fields allow selection */
+            input,
+            textarea,
+            select {
+                user-select: text !important;
+                -webkit-user-select: text !important;
+                -moz-user-select: text !important;
+                cursor: text !important;
+            }
+
+            /* FIXED: Prevent dragging of inputs */
+            input[draggable="true"],
+            textarea[draggable="true"] {
+                -webkit-user-drag: none;
+                user-drag: none;
+            }
+
+            /* Make sure entry divs are not draggable */
+            [data-entry-id] {
+                -webkit-user-drag: none;
+                user-drag: none;
+            }
+
+            /* Only drag handle should be draggable */
+            .entry-drag-handle {
+                -webkit-user-drag: element;
+                user-drag: element;
+            }
         </style>
     </head>
     <body class="bg-gray-900 text-gray-100">

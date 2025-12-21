@@ -58,3 +58,52 @@ export function debounce(func, wait) {
     timeout = setTimeout(later, wait);
   };
 }
+
+// Shared sorting utility - used by both preview and export
+export function sortEntries(entries) {
+  return [...entries].sort((a, b) => {
+    // Sort by importance (1 first, then 2, then 3)
+    if ((a.importance || 2) !== (b.importance || 2)) {
+      return (a.importance || 2) - (b.importance || 2);
+    }
+
+    // Then by date (newest first)
+    if (a.date && b.date && a.date !== b.date) {
+      return new Date(b.date) - new Date(a.date);
+    }
+
+    // Then by title alphabetically
+    return (a.title || "").localeCompare(b.title || "");
+  });
+}
+
+// Error handling for localStorage operations
+export function safeLocalStorage() {
+  return {
+    getItem(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch (e) {
+        console.error("localStorage.getItem failed:", e);
+        return null;
+      }
+    },
+    setItem(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (e) {
+        console.error("localStorage.setItem failed:", e);
+        alert("Failed to save data. Storage may be full.");
+        return false;
+      }
+    },
+    removeItem(key) {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.error("localStorage.removeItem failed:", e);
+      }
+    },
+  };
+}
