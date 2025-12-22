@@ -1,5 +1,3 @@
-// frontmatter.js
-
 export function yamlEscape(value = "") {
   return String(value)
     .replace(/\\/g, "\\\\")
@@ -12,57 +10,34 @@ export function generateFrontmatter(frontmatter, locations = []) {
   let md = "---\n";
 
   md += `layout: digest-entry\n`;
-  md += `title: \"${yamlEscape(frontmatter.title || "Untitled")}\"\n`;
-  md += `date: \"${frontmatter.date || "2025-01-01"}\"\n`;
+  md += `title: "${yamlEscape(frontmatter.title || "Untitled")}"\n`;
+  md += `date: "${frontmatter.date || "2025-01-01"}"\n`;
 
+  // Normalize tags
   const tags = Array.isArray(frontmatter.tags)
-    ? frontmatter.tags.map((t) => `\"${yamlEscape(t)}\"`).join(", ")
+    ? frontmatter.tags.map((t) => `"${yamlEscape(t)}"`).join(", ")
     : "";
   md += `tags: [${tags}]\n`;
 
   md += `draft: ${frontmatter.draft ?? true}\n`;
 
+  // Locations (only if present)
   if (locations.length) {
     md += "locations:\n";
     locations.forEach((loc) => {
-      md += `  - title: \"${yamlEscape(loc.title)}\"\n`;
-      md += `    city: \"${yamlEscape(loc.city)}\"\n`;
-      md += `    venue: \"${yamlEscape(loc.venue)}\"\n`;
-      md += `    country: \"${yamlEscape(loc.country)}\"\n`;
-      md += `    date: \"${yamlEscape(loc.date)}\"\n`;
+      md += `  - title: "${yamlEscape(loc.title)}"\n`;
+      md += `    city: "${yamlEscape(loc.city)}"\n`;
+      md += `    venue: "${yamlEscape(loc.venue)}"\n`;
+      md += `    country: "${yamlEscape(loc.country)}"\n`;
+      md += `    date: "${yamlEscape(loc.date)}"\n`;
       md += `    coords: [${(loc.coords || []).join(", ")}]\n`;
-      md += `    description: \"${yamlEscape(loc.description)}\"\n`;
+      md += `    description: "${yamlEscape(loc.description)}"\n`;
     });
   }
 
   md += "---\n\n";
   return md;
 }
-
-// generator.js
-
-export function generateDigestMarkdown(state) {
-  const locations = collectLocations(state.sections || []);
-
-  let md = generateFrontmatter(state.frontmatter, locations);
-
-  // canonical body
-  md += `# ${state.frontmatter.title || "Untitled"}\n\n`;
-
-  (state.sections || []).forEach((section) => {
-    md += `## ${section.title}\n\n`;
-
-    (section.entries || []).forEach((entry) => {
-      md += `### ${entry.title}\n`;
-      if (entry.description) md += `${entry.description}\n`;
-      md += "\n";
-    });
-  });
-
-  return md;
-}
-
-// locations.js
 
 export function collectLocations(sections) {
   const locations = [];
@@ -95,6 +70,7 @@ export function collectLocations(sections) {
   return locations;
 }
 
+// Private helpers for frontmatter normalization
 function parseCoordinates(coords) {
   return coords
     ? coords

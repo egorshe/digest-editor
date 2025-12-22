@@ -31,12 +31,6 @@
             #locationsToggleIcon.rotated {
                 transform: rotate(-180deg);
             }
-            .preview-mode {
-                opacity: 0.8;
-            }
-            .preview-emphasis {
-                border: 2px solid #8b5cf6;
-            }
 
             /* FIXED: Prevent text selection on drag handles and buttons */
             .entry-drag-handle,
@@ -132,9 +126,6 @@
                             ⬇️ Markdown
                         </button>
                     </div>
-
-                    <!-- STAGE SWITCHER - NEW! -->
-                    <div id="stageSwitcherContainer"></div>
 
                     <div class="mb-8 p-4 bg-gray-800 rounded-lg shadow-lg">
                         <h2 class="text-xl font-bold mb-4 text-blue-300">
@@ -285,7 +276,7 @@
                         >Personal Access Token (PAT)</a
                     >
                     with the **gist** scope enabled. This token is only stored
-                    in your browser's session storage.
+                    in your browser's local storage.
                 </p>
 
                 <div class="space-y-3">

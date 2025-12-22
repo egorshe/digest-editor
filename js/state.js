@@ -1,11 +1,11 @@
-// js/state.js - Refactored with proper state management
+// state.js - Plain object only, no DOM, no markdown, no side effects
+
 import { sectionTypes } from "./config.js";
 import { generateId } from "./utils.js";
 
 class DigestState {
   constructor() {
     this.data = {
-      stage: "edit", // 'capture' | 'edit' | 'preview'
       frontmatter: {},
       sections: [],
     };
@@ -16,66 +16,9 @@ class DigestState {
     return this.data;
   }
 
-  update(newData) {
+  set(newData) {
     this.data = newData;
-    // Ensure stage exists
-    if (!this.data.stage) {
-      this.data.stage = "edit";
-    }
-    // Don't call save() here - it would overwrite frontmatter from DOM
-    // Instead, directly save to localStorage
-    localStorage.setItem("digestState", JSON.stringify(this.data));
     this.notify();
-  }
-
-  updateFrontmatter(field, value) {
-    this.data.frontmatter[field] = value;
-    this.save();
-    this.notify();
-  }
-
-  save() {
-    const titleEl = document.getElementById("docTitle");
-    if (titleEl) {
-      this.data.frontmatter = {
-        title: document.getElementById("docTitle").value,
-        date: document.getElementById("docDate").value,
-        tags: document
-          .getElementById("docTags")
-          .value.split(",")
-          .map((t) => t.trim())
-          .filter((t) => t),
-        draft: document.getElementById("docDraft").value === "true",
-      };
-    }
-    localStorage.setItem("digestState", JSON.stringify(this.data));
-    console.log("💾 State saved and notifying preview...");
-    // PRIORITY 3 FIX: Removed duplicate notify() call
-    this.notify();
-  }
-
-  load() {
-    const saved = localStorage.getItem("digestState");
-    if (saved) {
-      try {
-        this.data = JSON.parse(saved);
-        // Ensure stage exists for backward compatibility
-        if (!this.data.stage) {
-          this.data.stage = "edit";
-        }
-        console.log(
-          "✅ State loaded from localStorage:",
-          this.data.sections.length,
-          "sections",
-        );
-      } catch (e) {
-        console.error("❌ Error loading state:", e);
-        this.data = { stage: "edit", frontmatter: {}, sections: [] };
-      }
-    } else {
-      console.log("ℹ️ No saved state found in localStorage");
-      this.data = { stage: "edit", frontmatter: {}, sections: [] };
-    }
   }
 
   subscribe(listener) {
@@ -91,23 +34,25 @@ class DigestState {
 
   // Section operations
   addSection(type, customTitle = null) {
-    const section = this.createSectionObject(type, customTitle);
+    const section = {
+      id: generateId(),
+      type: type,
+      title: customTitle || sectionTypes[type].title,
+      entries: [],
+    };
     this.data.sections.push(section);
-    this.save();
     this.notify();
     return section;
   }
 
   deleteSection(id) {
     this.data.sections = this.data.sections.filter((s) => s.id !== id);
-    this.save();
     this.notify();
   }
 
   moveSection(fromIdx, toIdx) {
     const [removed] = this.data.sections.splice(fromIdx, 1);
     this.data.sections.splice(toIdx, 0, removed);
-    this.save();
     this.notify();
   }
 
@@ -123,12 +68,12 @@ class DigestState {
     const entry = {
       id: generateId(),
       type: type,
-      importance: 2, // 1 = minor, 2 = normal, 3 = major
-      whyItMatters: "", // Editorial: 1-sentence context
-      signal: "", // Editorial: categorical signal
+      importance: 2,
+      whyItMatters: "",
+      signal: "",
     };
 
-    // Initialize defaults based on type
+    // Initialize type-specific defaults
     if (type === "publication") {
       entry.authors = [{ name: "", surname: "" }];
       entry.pubType = "Article";
@@ -146,7 +91,6 @@ class DigestState {
     }
 
     section.entries.push(entry);
-    this.save();
     this.notify();
     return entry;
   }
@@ -156,7 +100,6 @@ class DigestState {
     if (!section) return;
 
     section.entries = section.entries.filter((e) => e.id !== entryId);
-    this.save();
     this.notify();
   }
 
@@ -167,8 +110,6 @@ class DigestState {
     const entry = section.entries.find((e) => e.id === entryId);
     if (!entry) return;
 
-    // PRIORITY 3 FIX: Better checkbox handling
-    // Check if the field is meant to be boolean
     const booleanFields = ["openAccess", "draft"];
     if (booleanFields.includes(field)) {
       entry[field] = !!value;
@@ -176,7 +117,6 @@ class DigestState {
       entry[field] = value;
     }
 
-    this.save();
     this.notify();
   }
 
@@ -188,7 +128,6 @@ class DigestState {
 
     const [movedEntry] = fromSec.entries.splice(fromIdx, 1);
     toSec.entries.splice(toIdx, 0, movedEntry);
-    this.save();
     this.notify();
   }
 
@@ -201,7 +140,6 @@ class DigestState {
     if (!entry || !entry.authors) return;
 
     entry.authors.push({ name: "", surname: "" });
-    this.save();
     this.notify();
   }
 
@@ -213,7 +151,6 @@ class DigestState {
     if (!entry || !entry.authors || !entry.authors[idx]) return;
 
     entry.authors[idx][field] = value;
-    this.save();
     this.notify();
   }
 
@@ -225,53 +162,7 @@ class DigestState {
     if (!entry || !entry.authors) return;
 
     entry.authors.splice(idx, 1);
-    this.save();
     this.notify();
-  }
-
-  // Utility methods
-  createSectionObject(type, customTitle = null) {
-    return {
-      id: generateId(),
-      type: type,
-      title: customTitle || sectionTypes[type].title,
-      entries: [],
-    };
-  }
-
-  initDefaults() {
-    // Only initialize if truly empty (no sections at all)
-    if (this.data.sections.length === 0) {
-      this.data.sections.push(this.createSectionObject("publications"));
-      this.data.sections.push(this.createSectionObject("conferences"));
-      this.data.sections.push(this.createSectionObject("news"));
-    }
-    // Ensure stage exists (for backward compatibility)
-    if (!this.data.stage) {
-      this.data.stage = "edit";
-    }
-    this.save();
-    this.notify();
-  }
-
-  reset() {
-    this.data = { stage: "edit", frontmatter: {}, sections: [] };
-    localStorage.removeItem("digestState");
-    this.notify();
-  }
-
-  // Stage management
-  setStage(stage) {
-    if (!this.data.stage) {
-      this.data.stage = "edit";
-    }
-    this.data.stage = stage;
-    this.save();
-    this.notify();
-  }
-
-  getStage() {
-    return this.data.stage || "edit";
   }
 }
 

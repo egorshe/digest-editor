@@ -1,8 +1,13 @@
+// generators.js - Pure functions that convert entries to markdown
+// No DOM, no state mutations, just data → string
+
 export function generatePublicationMarkdown(entry) {
   let md = "";
+
   if (entry.openAccess) {
     md += `<span style="background-color: #5a96d0; color: white; padding: 0.25em 0.4em; border-radius: 0.25rem; font-size: 75%; line-height: 1;">Open Access</span> `;
   }
+
   const authors = entry.authors
     .filter((a) => a.surname || a.name)
     .map((a) => `${a.surname}, ${a.name}`)
@@ -25,7 +30,6 @@ export function generatePublicationMarkdown(entry) {
   if (entry.url) md += ` [${entry.urlText || "link"}](${entry.url})`;
   md += "\n";
 
-  // Editorial fields
   if (entry.whyItMatters) {
     md += `*${entry.whyItMatters}*\n`;
   }
@@ -59,7 +63,6 @@ export function generateJournalMarkdown(entry) {
     md += `${entry.description}  \n`;
   }
 
-  // Editorial fields
   if (entry.whyItMatters) {
     md += `*${entry.whyItMatters}*  \n`;
   }
@@ -89,7 +92,6 @@ export function generateEventMarkdown(entry) {
     md += `Place: ${entry.place}${entry.venue ? ", " + entry.venue : ""}  \n`;
   if (entry.description) md += `Description: ${entry.description}  \n`;
 
-  // Editorial fields
   if (entry.whyItMatters) {
     md += `*${entry.whyItMatters}*  \n`;
   }
@@ -107,7 +109,6 @@ export function generateCallMarkdown(entry) {
   if (entry.title) md += `**${entry.title}** - ${entry.theme || ""}  \n`;
   if (entry.deadline) md += `Deadline: ${entry.deadline}  \n`;
 
-  // Editorial fields
   if (entry.whyItMatters) {
     md += `*${entry.whyItMatters}*  \n`;
   }
@@ -127,7 +128,6 @@ export function generateMediaMarkdown(entry) {
   if (entry.creator) md += `By: ${entry.creator}  \n`;
   if (entry.description) md += `${entry.description}  \n`;
 
-  // Editorial fields
   if (entry.whyItMatters) {
     md += `*${entry.whyItMatters}*  \n`;
   }
