@@ -1,7 +1,3 @@
-// io.js - Where mess lives
-// Zotero edge cases, drag & drop, JSON vs MD quirks, legacy compatibility
-// Not allowed: UI rendering, markdown generation (call generators instead)
-
 import { state } from "./state.js";
 import { generateId, sortEntries } from "./utils.js";
 import { generateFrontmatter, collectLocations } from "./frontmatter.js";
@@ -254,7 +250,10 @@ export function exportJSON() {
 
 // === MARKDOWN EXPORT ===
 export function buildDigest(data) {
-  const locations = collectLocations(data.sections);
+  const locations = collectLocations(
+    data.sections,
+    data.frontmatterLocations || [],
+  );
   let md = generateFrontmatter(data.frontmatter, locations);
   md += "\n\n";
 
@@ -337,11 +336,11 @@ export function loadFromLocalStorage() {
       return data;
     } catch (e) {
       console.error("❌ Error loading state:", e);
-      return { frontmatter: {}, sections: [] };
+      return { frontmatter: {}, sections: [], frontmatterLocations: [] };
     }
   }
   console.log("ℹ️ No saved state found");
-  return { frontmatter: {}, sections: [] };
+  return { frontmatter: {}, sections: [], frontmatterLocations: [] };
 }
 
 export function saveToLocalStorage(data, frontmatterFromDOM) {

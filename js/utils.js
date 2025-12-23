@@ -1,6 +1,56 @@
-// js/utils.js - Enhanced utilities with validation
 export const generateId = () =>
   Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+export function toTitleCase(str) {
+  if (!str) return str;
+
+  const lowercase = new Set([
+    "a",
+    "an",
+    "the",
+    "and",
+    "but",
+    "or",
+    "nor",
+    "for",
+    "yet",
+    "so",
+    "at",
+    "by",
+    "in",
+    "of",
+    "on",
+    "to",
+    "up",
+    "as",
+    "is",
+    "if",
+    "it",
+    "from",
+    "into",
+    "with",
+    "via",
+    "per",
+    "for",
+    "vs",
+  ]);
+
+  return str
+    .toLowerCase()
+    .split(" ")
+    .map((word, index, array) => {
+      if (index === 0 || index === array.length - 1) {
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      }
+
+      if (lowercase.has(word)) {
+        return word;
+      }
+
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+}
 
 export function mapCSLType(cslType) {
   const typeMap = {
@@ -28,12 +78,12 @@ export function formatCSLDate(issued) {
 
 // Validation functions
 export function validateDate(dateStr) {
-  if (!dateStr) return true; // Empty is valid
+  if (!dateStr) return true;
   return /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
 }
 
 export function validateURL(url) {
-  if (!url) return true; // Empty is valid
+  if (!url) return true;
   try {
     new URL(url);
     return true;

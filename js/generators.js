@@ -1,6 +1,3 @@
-// generators.js - Pure functions that convert entries to markdown
-// No DOM, no state mutations, just data → string
-
 export function generatePublicationMarkdown(entry) {
   let md = "";
 

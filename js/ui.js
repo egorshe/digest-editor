@@ -1,6 +1,3 @@
-// ui.js - DOM in, DOM out. Event handlers allowed, small render helpers allowed.
-// Forbidden: YAML escaping, markdown formatting, filename logic, Zotero assumptions
-
 import { state } from "./state.js";
 import { sectionTypes } from "./config.js";
 import { dragDropManager } from "./io.js";
@@ -390,6 +387,31 @@ export function renderEventForm(sectionId, entry) {
 
   html += renderInput(entry.title, "Title", sectionId, entry.id, "title");
 
+  // Custom Event Type field
+  html += `<div class="flex gap-2">`;
+  html += renderSelect(
+    ["Conference", "Festival", "Exhibition", "Custom"],
+    entry.customEventType
+      ? "Custom"
+      : entry.type.charAt(0).toUpperCase() + entry.type.slice(1),
+    sectionId,
+    entry.id,
+    "eventTypeSelector",
+    "flex-1",
+  ).replace("<select", '<select title="Event Type"');
+
+  html += `<input
+    type="text"
+    value="${escapeHtml(entry.customEventType || "")}"
+    placeholder="Custom type (e.g., Workshop, Symposium)"
+    class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none ${entry.customEventType ? "" : "hidden"}"
+    data-section="${sectionId}"
+    data-entry="${entry.id}"
+    data-field="customEventType"
+    id="customEventType_${entry.id}"
+  >`;
+  html += `</div>`;
+
   if (showTheme) {
     html += renderInput(entry.theme, "Theme", sectionId, entry.id, "theme");
   }
@@ -547,9 +569,6 @@ export function renderSections() {
       </div>
     `;
 
-    const entryConfig = getEntryConfig(section.type);
-    html += `<button onclick="addEntry('${section.id}', '${entryConfig.type}')" class="mb-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition font-medium">+ Add ${entryConfig.text}</button>`;
-
     html += '<div class="space-y-4">';
 
     section.entries.forEach((entry, idx) => {
@@ -568,10 +587,13 @@ export function renderSections() {
     });
     html += "</div>";
 
+    // Add button at the end
+    const entryConfig = getEntryConfig(section.type);
+    html += `<button onclick="addEntry('${section.id}', '${entryConfig.type}')" class="mt-3 w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm transition font-medium">+ Add ${entryConfig.text}</button>`;
+
     sectionDiv.innerHTML = html;
     container.appendChild(sectionDiv);
 
-    // Disable section drag when over inputs
     sectionDiv.querySelectorAll("input, textarea, select").forEach((input) => {
       input.addEventListener("mouseenter", () => {
         sectionDiv.draggable = false;
@@ -581,7 +603,6 @@ export function renderSections() {
       });
     });
 
-    // Attach entry drag listeners
     sectionDiv.querySelectorAll("[data-entry-id]").forEach((entryDiv) => {
       const dragHandle = entryDiv.querySelector(".entry-drag-handle");
       if (dragHandle) {

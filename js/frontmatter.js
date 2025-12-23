@@ -39,7 +39,7 @@ export function generateFrontmatter(frontmatter, locations = []) {
   return md;
 }
 
-export function collectLocations(sections) {
+export function collectLocations(sections, frontmatterLocations = []) {
   const locations = [];
 
   sections.forEach((section) => {
@@ -55,22 +55,41 @@ export function collectLocations(sections) {
 
       const entryTitle = entry.title || "Untitled";
 
-      locations.push({
-        title: `${typeLabel}: ${entryTitle}`,
-        city,
-        venue: entry.venue || "",
-        country,
-        coords: parseCoordinates(entry.coords),
-        date: formatEventDate(entry.dateStart, entry.dateEnd),
-        description: entry.description || "",
-      });
+      // Check if there's a frontmatter override for this entry
+      const frontmatterOverride = frontmatterLocations.find(
+        (loc) => loc.entryId === entry.id,
+      );
+
+      if (frontmatterOverride) {
+        locations.push({
+          title: frontmatterOverride.title || `${typeLabel}: ${entryTitle}`,
+          city,
+          venue: entry.venue || "",
+          country,
+          coords: parseCoordinates(entry.coords),
+          date: formatEventDate(entry.dateStart, entry.dateEnd),
+          description:
+            frontmatterOverride.description || entry.description || "",
+          entryId: entry.id,
+        });
+      } else {
+        locations.push({
+          title: `${typeLabel}: ${entryTitle}`,
+          city,
+          venue: entry.venue || "",
+          country,
+          coords: parseCoordinates(entry.coords),
+          date: formatEventDate(entry.dateStart, entry.dateEnd),
+          description: entry.description || "",
+          entryId: entry.id,
+        });
+      }
     });
   });
 
   return locations;
 }
 
-// Private helpers for frontmatter normalization
 function parseCoordinates(coords) {
   return coords
     ? coords

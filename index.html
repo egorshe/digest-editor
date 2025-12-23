@@ -32,7 +32,6 @@
                 transform: rotate(-180deg);
             }
 
-            /* FIXED: Prevent text selection on drag handles and buttons */
             .entry-drag-handle,
             button,
             .cursor-move {
@@ -42,7 +41,6 @@
                 -ms-user-select: none;
             }
 
-            /* FIXED: Ensure text fields allow selection */
             input,
             textarea,
             select {
@@ -52,20 +50,17 @@
                 cursor: text !important;
             }
 
-            /* FIXED: Prevent dragging of inputs */
             input[draggable="true"],
             textarea[draggable="true"] {
                 -webkit-user-drag: none;
                 user-drag: none;
             }
 
-            /* Make sure entry divs are not draggable */
             [data-entry-id] {
                 -webkit-user-drag: none;
                 user-drag: none;
             }
 
-            /* Only drag handle should be draggable */
             .entry-drag-handle {
                 -webkit-user-drag: element;
                 user-drag: element;
@@ -124,6 +119,12 @@
                             class="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded text-xs font-bold transition"
                         >
                             ⬇️ Markdown
+                        </button>
+                        <button
+                            onclick="normalizeTitles()"
+                            class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 rounded text-xs font-semibold transition"
+                        >
+                            ✨ Normalize Titles
                         </button>
                     </div>
 

@@ -1,5 +1,3 @@
-// state.js - Plain object only, no DOM, no markdown, no side effects
-
 import { sectionTypes } from "./config.js";
 import { generateId } from "./utils.js";
 
@@ -8,6 +6,7 @@ class DigestState {
     this.data = {
       frontmatter: {},
       sections: [],
+      frontmatterLocations: [], // Store location overrides
     };
     this.listeners = [];
   }
@@ -18,6 +17,10 @@ class DigestState {
 
   set(newData) {
     this.data = newData;
+    // Ensure frontmatterLocations exists
+    if (!this.data.frontmatterLocations) {
+      this.data.frontmatterLocations = [];
+    }
     this.notify();
   }
 
@@ -100,6 +103,12 @@ class DigestState {
     if (!section) return;
 
     section.entries = section.entries.filter((e) => e.id !== entryId);
+
+    // Also remove from frontmatterLocations
+    this.data.frontmatterLocations = this.data.frontmatterLocations.filter(
+      (loc) => loc.entryId !== entryId,
+    );
+
     this.notify();
   }
 
@@ -162,6 +171,25 @@ class DigestState {
     if (!entry || !entry.authors) return;
 
     entry.authors.splice(idx, 1);
+    this.notify();
+  }
+
+  // Frontmatter location operations
+  updateFrontmatterLocation(entryId, field, value) {
+    if (!this.data.frontmatterLocations) {
+      this.data.frontmatterLocations = [];
+    }
+
+    let location = this.data.frontmatterLocations.find(
+      (loc) => loc.entryId === entryId,
+    );
+
+    if (!location) {
+      location = { entryId };
+      this.data.frontmatterLocations.push(location);
+    }
+
+    location[field] = value;
     this.notify();
   }
 }

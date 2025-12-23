@@ -1,10 +1,6 @@
-// main.js - Think of it as a score, not an instrument
-// Allowed: imports, init, wiring, mode toggles
-// If you see more than ~200–300 lines, audit it.
-
 import { state } from "./state.js";
 import { sectionTypes } from "./config.js";
-import { debounce, sortEntries } from "./utils.js";
+import { debounce, sortEntries, toTitleCase } from "./utils.js";
 import { generateFrontmatter, collectLocations } from "./frontmatter.js";
 import * as Generators from "./generators.js";
 import * as IO from "./io.js";
@@ -99,6 +95,30 @@ function attachInputListeners() {
         const field = e.target.dataset.field;
         state.updateEntry(sectionId, entryId, field, e.target.checked);
       }
+
+      // Handle event type selector
+      if (e.target.dataset.field === "eventTypeSelector") {
+        const entryId = e.target.dataset.entry;
+        const customInput = document.getElementById(
+          `customEventType_${entryId}`,
+        );
+
+        if (e.target.value === "Custom") {
+          if (customInput) customInput.classList.remove("hidden");
+        } else {
+          if (customInput) {
+            customInput.classList.add("hidden");
+            customInput.value = "";
+          }
+          // Clear customEventType
+          state.updateEntry(
+            e.target.dataset.section,
+            entryId,
+            "customEventType",
+            "",
+          );
+        }
+      }
     },
     true,
   );
@@ -183,7 +203,7 @@ window.resetState = function () {
     )
   ) {
     IO.clearLocalStorage();
-    state.set({ frontmatter: {}, sections: [] });
+    state.set({ frontmatter: {}, sections: [], frontmatterLocations: [] });
     document.getElementById("docTitle").value = "";
     document.getElementById("docDate").value = "";
     document.getElementById("docTags").value = "";
@@ -195,6 +215,122 @@ window.resetState = function () {
     UI.showAlert("Editor has been completely reset.");
   }
 };
+
+window.normalizeTitles = function () {
+  let count = 0;
+  const sections = state.get().sections;
+
+  sections.forEach((section) => {
+    section.entries.forEach((entry) => {
+      if (entry.title && entry.title.trim()) {
+        const normalized = toTitleCase(entry.title);
+        if (normalized !== entry.title) {
+          entry.title = normalized;
+          count++;
+        }
+      }
+    });
+  });
+
+  if (count > 0) {
+    state.notify();
+    UI.renderSections();
+    updatePreview();
+    UI.showAlert(`Normalized ${count} title(s) to Title Case.`);
+  } else {
+    UI.showAlert("No titles needed normalization.");
+  }
+};
+
+window.toggleLocationsEditor = function () {
+  const content = document.getElementById("locationsEditorContent");
+  const icon = document.getElementById("locationsToggleIcon");
+
+  if (content.classList.contains("hidden")) {
+    content.classList.remove("hidden");
+    icon.classList.add("rotated");
+    renderLocationsEditor();
+  } else {
+    content.classList.add("hidden");
+    icon.classList.remove("rotated");
+  }
+};
+
+window.updateLocationField = function (entryId, field, value) {
+  state.updateFrontmatterLocation(entryId, field, value);
+  updatePreview();
+};
+
+function renderLocationsEditor() {
+  const container = document.getElementById("locationsEditorContainer");
+  const locations = collectLocations(
+    state.get().sections,
+    state.get().frontmatterLocations || [],
+  );
+
+  if (locations.length === 0) {
+    container.innerHTML =
+      '<p class="text-sm text-gray-500 italic">No event locations found. Add conferences, exhibitions, or festivals to see them here.</p>';
+    return;
+  }
+
+  let html = '<div class="space-y-4">';
+  locations.forEach((loc, idx) => {
+    const entryId = loc.entryId;
+
+    html += `
+      <div class="p-3 bg-gray-700 rounded border border-gray-600">
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Display Title (in frontmatter)</label>
+            <input
+              type="text"
+              value="${escapeHtml(loc.title || "")}"
+              class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none text-sm"
+              data-entry-id="${entryId}"
+              data-location-field="title"
+              onblur="updateLocationField('${entryId}', 'title', this.value)"
+            >
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="text-gray-400">City: <span class="text-gray-300">${loc.city || "N/A"}</span></div>
+            <div class="text-gray-400">Country: <span class="text-gray-300">${loc.country || "N/A"}</span></div>
+            <div class="text-gray-400">Venue: <span class="text-gray-300">${loc.venue || "N/A"}</span></div>
+            <div class="text-gray-400">Date: <span class="text-gray-300">${loc.date || "N/A"}</span></div>
+            ${loc.coords.length === 2 ? `<div class="col-span-2 text-gray-400">Coords: <span class="text-gray-300">${loc.coords.join(", ")}</span></div>` : ""}
+          </div>
+
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Description (in frontmatter)</label>
+            <textarea
+              class="w-full p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none text-sm h-16"
+              data-entry-id="${entryId}"
+              data-location-field="description"
+              onblur="updateLocationField('${entryId}', 'description', this.value)"
+            >${escapeHtml(loc.description || "")}</textarea>
+          </div>
+
+          <div class="text-xs text-gray-500 italic">
+            Note: City, Country, Venue, Date, and Coords come from the entry and cannot be edited here.
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  html += "</div>";
+
+  container.innerHTML = html;
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 // === IMPORT/EXPORT ===
 
@@ -294,7 +430,10 @@ window.gistAction = async function () {
 function updatePreview() {
   const data = state.get();
   const frontmatter = UI.getFrontmatterFromDOM();
-  const locations = collectLocations(data.sections);
+  const locations = collectLocations(
+    data.sections,
+    data.frontmatterLocations || [],
+  );
 
   let md = generateFrontmatter(frontmatter, locations);
 
