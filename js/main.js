@@ -364,11 +364,11 @@ window.handleZoteroImport = (event) => {
 
 window.downloadMarkdown = IO.exportMarkdown;
 
-// === GIST ===
+// === GIST FUNCTIONS (Updated with Discovery) ===
 
 let currentGistAction = "";
 
-window.openGistModal = function (action) {
+window.openGistModal = async function (action) {
   currentGistAction = action;
   const modal = document.getElementById("gistModal");
   const title = document.getElementById("gistModalTitle");
@@ -380,6 +380,19 @@ window.openGistModal = function (action) {
   document.getElementById("gistToken").value = persistedToken || "";
   document.getElementById("gistId").value = persistedId || "";
 
+  // Reset the gist list container
+  const gistIdContainer = document.getElementById("gistIdContainer");
+  gistIdContainer.innerHTML = `
+    <label class="block text-sm mb-1 text-gray-400">Gist ID (Leave empty to create a new Gist)</label>
+    <input
+      type="text"
+      id="gistId"
+      placeholder="e.g., 1a2b3c4d5e6f7g8h9i0j"
+      value="${persistedId || ""}"
+      class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+    />
+  `;
+
   if (action === "save") {
     title.textContent = "Save Draft to Gist";
     button.textContent = persistedId
@@ -388,6 +401,21 @@ window.openGistModal = function (action) {
   } else if (action === "load") {
     title.textContent = "Load Draft from Gist";
     button.textContent = "Load Draft";
+
+    // Auto-populate gist list if token is available
+    if (persistedToken) {
+      await populateGistList();
+    } else {
+      // Show a button to load gists once token is entered
+      gistIdContainer.innerHTML += `
+        <button
+          onclick="refreshGistList()"
+          class="mt-2 w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm font-medium transition"
+        >
+          🔍 Find My Digest Drafts
+        </button>
+      `;
+    }
   }
 
   modal.style.display = "flex";
@@ -420,9 +448,111 @@ window.gistAction = async function () {
     alert(error.message);
   } finally {
     actionButton.disabled = false;
-    actionButton.textContent = "Perform Action";
+    if (currentGistAction === "save") {
+      const persistedId = localStorage.getItem("gistId");
+      actionButton.textContent = persistedId
+        ? "Update Existing Gist"
+        : "Create New Gist";
+    } else {
+      actionButton.textContent = "Load Draft";
+    }
     window.closeGistModal();
   }
+};
+
+// NEW: Populate the gist list dropdown
+window.populateGistList = async function () {
+  const gistIdContainer = document.getElementById("gistIdContainer");
+
+  try {
+    gistIdContainer.innerHTML = '<p class="text-xs text-gray-400">🔄 Loading your digest drafts...</p>';
+
+    const gists = await gistManager.listUserGists();
+
+    if (gists.length === 0) {
+      gistIdContainer.innerHTML = `
+        <p class="text-sm text-gray-400 mb-2">No digest drafts found in your Gists.</p>
+        <label class="block text-sm mb-1 text-gray-400">Gist ID (Manual Entry)</label>
+        <input
+          type="text"
+          id="gistId"
+          placeholder="e.g., 1a2b3c4d5e6f7g8h9i0j"
+          class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+        />
+      `;
+      return;
+    }
+
+    let html = '<label class="block text-sm mb-1 text-gray-400">📚 Your Digest Drafts:</label>';
+    html += '<select id="gistSelector" class="w-full p-2 bg-gray-700 rounded border border-gray-600 text-sm mb-2">';
+    html += '<option value="">-- Select a Gist to Load --</option>';
+
+    gists.forEach((gist) => {
+      const date = new Date(gist.updated_at).toLocaleString();
+      const description = gist.description || "Untitled Draft";
+      html += `<option value="${gist.id}">${description} (Updated: ${date})</option>`;
+    });
+
+    html += '</select>';
+    html += '<div class="flex gap-2">';
+    html += '<button onclick="loadSelectedGist()" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium transition">📥 Load Selected</button>';
+    html += '<button onclick="refreshGistList()" class="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm transition">🔄</button>';
+    html += '</div>';
+
+    html += '<div class="mt-3 pt-3 border-t border-gray-600">';
+    html += '<label class="block text-sm mb-1 text-gray-400">Or enter Gist ID manually:</label>';
+    html += '<input type="text" id="gistId" placeholder="e.g., 1a2b3c4d5e6f7g8h9i0j" class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none" />';
+    html += '</div>';
+
+    gistIdContainer.innerHTML = html;
+  } catch (error) {
+    gistIdContainer.innerHTML = `
+      <p class="text-xs text-red-400 mb-2">❌ Error loading Gists: ${error.message}</p>
+      <label class="block text-sm mb-1 text-gray-400">Gist ID (Manual Entry)</label>
+      <input
+        type="text"
+        id="gistId"
+        placeholder="e.g., 1a2b3c4d5e6f7g8h9i0j"
+        class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+      />
+      <button
+        onclick="refreshGistList()"
+        class="mt-2 w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm font-medium transition"
+      >
+        🔄 Try Again
+      </button>
+    `;
+  }
+};
+
+// NEW: Load the selected Gist from the dropdown
+window.loadSelectedGist = function () {
+  const selector = document.getElementById("gistSelector");
+  const selectedId = selector?.value;
+
+  if (!selectedId) {
+    alert("Please select a Gist from the list.");
+    return;
+  }
+
+  // Populate the Gist ID field and trigger load
+  document.getElementById("gistId").value = selectedId;
+  gistAction();
+};
+
+// NEW: Refresh the gist list (useful if token was just entered)
+window.refreshGistList = async function () {
+  const token = document.getElementById("gistToken").value;
+
+  if (!token) {
+    alert("Please enter your GitHub Personal Access Token first.");
+    return;
+  }
+
+  // Persist the token
+  gistManager.persistToken(token);
+
+  await populateGistList();
 };
 
 // === PREVIEW ===
