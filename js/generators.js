@@ -1,3 +1,30 @@
+// === HELPER FUNCTIONS ===
+
+// Helper function to format descriptions with Jekyll-compatible line breaks
+function formatJekyllText(text) {
+  if (!text) return "";
+  // Replace single newlines with double-space + newline for Jekyll
+  return text.replace(/\n/g, "  \n");
+}
+
+// Helper function to format URLs with proper link text
+function formatURL(url, customText = null) {
+  if (!url) return "";
+  
+  // Check if it's a DOI URL
+  if (url.includes("doi.org/")) {
+    const doiMatch = url.match(/10\.\d{4,}\/[^\s]+/);
+    if (doiMatch) {
+      return ` [DOI](${url})`;
+    }
+  }
+  
+  // Use custom text or default to "link"
+  return ` [${customText || "link"}](${url})`;
+}
+
+// === MARKDOWN GENERATORS ===
+
 export function generatePublicationMarkdown(entry) {
   let md = "";
 
@@ -26,33 +53,41 @@ export function generatePublicationMarkdown(entry) {
     md += `*${entry.title}*`;
     if (entry.publisher) md += `. ${entry.publisher}`;
     if (entry.date) {
-      // Extract year from date
       const year = entry.date.split("-")[0];
       md += `, ${year}`;
     }
     md += ".";
+    // Add link for books
+    if (entry.url) {
+      md += formatURL(entry.url, entry.urlText);
+    }
   } else if (entry.pubType === "Chapter") {
     // Chapter: Author. "Title." *Book Title*, edited by Editor, Publisher, Year, pp. pages.
     md += `"${entry.title}."`;
     if (entry.containerTitle) md += ` *${entry.containerTitle}*`;
-    // Note: MLA would need editor info here, but we don't have that field
     if (entry.publisher) md += `, ${entry.publisher}`;
     if (entry.date) {
       const year = entry.date.split("-")[0];
       md += `, ${year}`;
     }
     md += ".";
+    // Add link for chapters
+    if (entry.url) {
+      md += formatURL(entry.url, entry.urlText);
+    }
   } else if (entry.pubType === "Article" || entry.pubType === "Online Article") {
-    // Article: Author. "Title." *Journal*, vol. #, no. #, Date, URL/DOI.
+    // Article: Author. "Title." *Journal*, vol. #, no. #, Date, [DOI/link].
     md += `"${entry.title}."`;
     if (entry.containerTitle) md += ` *${entry.containerTitle}*`;
     if (entry.volume) md += `, vol. ${entry.volume}`;
     if (entry.issue) md += `, no. ${entry.issue}`;
     if (entry.date) {
-      // Format date as Day Month Year (MLA style)
       md += `, ${formatMLADate(entry.date)}`;
     }
-    if (entry.url) md += `, ${entry.url}`;
+    // Add formatted URL/DOI for articles
+    if (entry.url) {
+      md += formatURL(entry.url, entry.urlText);
+    }
     md += ".";
   } else if (entry.pubType === "Thesis") {
     // Thesis: Author. *Title*. Year. Institution, Thesis type.
@@ -63,6 +98,10 @@ export function generatePublicationMarkdown(entry) {
     }
     if (entry.publisher) md += `. ${entry.publisher}`;
     md += ".";
+    // Add link for theses
+    if (entry.url) {
+      md += formatURL(entry.url, entry.urlText);
+    }
   } else {
     // Default fallback
     md += `"${entry.title}."`;
@@ -71,18 +110,16 @@ export function generatePublicationMarkdown(entry) {
     if (entry.issue) md += `, no. ${entry.issue}`;
     if (entry.publisher) md += `, ${entry.publisher}`;
     if (entry.date) md += `, ${entry.date}`;
+    if (entry.url) {
+      md += formatURL(entry.url, entry.urlText);
+    }
     md += ".";
-  }
-
-// Add custom link text if URL provided but not already included
-  if (entry.url && (entry.pubType === "Book" || entry.pubType === "Chapter" || entry.pubType === "Thesis")) {
-    md += ` [${entry.urlText || "link"}](${entry.url})`;
   }
   
   md += "\n";
 
   if (entry.whyItMatters) {
-    md += `*${entry.whyItMatters}*\n`;
+    md += `*${formatJekyllText(entry.whyItMatters)}*\n`;
   }
   if (entry.signal) {
     md += `**Signal**: ${entry.signal}\n`;
@@ -92,7 +129,7 @@ export function generatePublicationMarkdown(entry) {
     const summaryLabel = (entry.pubType === "Book" || entry.pubType === "Chapter" || entry.pubType === "Thesis") 
       ? "Annotation" 
       : "Abstract";
-    md += `<details markdown="1"><summary>${summaryLabel}</summary>\n${entry.abstract}\n</details>\n`;
+    md += `<details markdown="1"><summary>${summaryLabel}</summary>\n${formatJekyllText(entry.abstract)}\n</details>\n`;
   }
   
   md += "\n";
@@ -109,18 +146,15 @@ function formatMLADate(dateStr) {
   
   const parts = dateStr.split("-");
   if (parts.length === 3) {
-    // Full date: Day Month Year
     const year = parts[0];
     const month = parseInt(parts[1]) - 1;
     const day = parseInt(parts[2]);
     return `${day} ${months[month]} ${year}`;
   } else if (parts.length === 2) {
-    // Month and year: Month Year
     const year = parts[0];
     const month = parseInt(parts[1]) - 1;
     return `${months[month]} ${year}`;
   } else if (parts.length === 1) {
-    // Just year
     return parts[0];
   }
   
@@ -143,11 +177,11 @@ export function generateJournalMarkdown(entry) {
   md += ".  \n";
 
   if (entry.description) {
-    md += `${entry.description}  \n`;
+    md += `${formatJekyllText(entry.description)}  \n`;
   }
 
   if (entry.whyItMatters) {
-    md += `*${entry.whyItMatters}*  \n`;
+    md += `*${formatJekyllText(entry.whyItMatters)}*  \n`;
   }
   if (entry.signal) {
     md += `**Signal**: ${entry.signal}  \n`;
@@ -173,10 +207,10 @@ export function generateEventMarkdown(entry) {
   if (entry.cfpDeadline) md += `CfP Deadline: ${entry.cfpDeadline}  \n`;
   if (entry.place)
     md += `Place: ${entry.place}${entry.venue ? ", " + entry.venue : ""}  \n`;
-  if (entry.description) md += `Description: ${entry.description}  \n`;
+  if (entry.description) md += `Description: ${formatJekyllText(entry.description)}  \n`;
 
   if (entry.whyItMatters) {
-    md += `*${entry.whyItMatters}*  \n`;
+    md += `*${formatJekyllText(entry.whyItMatters)}*  \n`;
   }
   if (entry.signal) {
     md += `**Signal**: ${entry.signal}  \n`;
@@ -193,7 +227,7 @@ export function generateCallMarkdown(entry) {
   if (entry.deadline) md += `Deadline: ${entry.deadline}  \n`;
 
   if (entry.whyItMatters) {
-    md += `*${entry.whyItMatters}*  \n`;
+    md += `*${formatJekyllText(entry.whyItMatters)}*  \n`;
   }
   if (entry.signal) {
     md += `**Signal**: ${entry.signal}  \n`;
@@ -209,10 +243,10 @@ export function generateMediaMarkdown(entry) {
   if (entry.title)
     md += `**${entry.title}** (${entry.mediaType || "Media"})  \n`;
   if (entry.creator) md += `By: ${entry.creator}  \n`;
-  if (entry.description) md += `${entry.description}  \n`;
+  if (entry.description) md += `${formatJekyllText(entry.description)}  \n`;
 
   if (entry.whyItMatters) {
-    md += `*${entry.whyItMatters}*  \n`;
+    md += `*${formatJekyllText(entry.whyItMatters)}*  \n`;
   }
   if (entry.signal) {
     md += `**Signal**: ${entry.signal}  \n`;
