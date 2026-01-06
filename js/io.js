@@ -101,15 +101,24 @@ class DragDropManager {
     this.draggedEntry = null;
   }
 
-  attachSectionListeners(element) {
-    element.addEventListener(
-      "dragstart",
-      this.handleSectionDragStart.bind(this),
+  attachSectionListeners(sectionElement, dragHandle) {
+    // Only the drag handle triggers section drag
+    dragHandle.addEventListener("dragstart", (e) => {
+      this.draggedSection = sectionElement;
+      sectionElement.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.stopPropagation();
+    });
+
+    dragHandle.addEventListener("dragend", this.handleDragEnd.bind(this));
+
+    // The section element is the drop target
+    sectionElement.addEventListener("dragover", this.handleDragOver.bind(this));
+    sectionElement.addEventListener(
+      "dragleave",
+      this.handleDragLeave.bind(this),
     );
-    element.addEventListener("dragover", this.handleDragOver.bind(this));
-    element.addEventListener("dragleave", this.handleDragLeave.bind(this));
-    element.addEventListener("drop", this.handleSectionDrop.bind(this));
-    element.addEventListener("dragend", this.handleDragEnd.bind(this));
+    sectionElement.addEventListener("drop", this.handleSectionDrop.bind(this));
   }
 
   attachEntryListeners(element, dragHandle) {
@@ -164,22 +173,29 @@ export function handleZoteroImport(event, onSuccess, onError) {
       cslData.forEach((item) => {
         const title = item.title || "";
         const doi = item.DOI || "";
-        
+
         // Check for duplicates by title (case-insensitive) or DOI
         const isDuplicate = pubSection.entries.some((existingEntry) => {
           // Match by title (normalized, case-insensitive)
           if (title && existingEntry.title) {
-            const normalizedNew = title.toLowerCase().trim().replace(/\s+/g, ' ');
-            const normalizedExisting = existingEntry.title.toLowerCase().trim().replace(/\s+/g, ' ');
+            const normalizedNew = title
+              .toLowerCase()
+              .trim()
+              .replace(/\s+/g, " ");
+            const normalizedExisting = existingEntry.title
+              .toLowerCase()
+              .trim()
+              .replace(/\s+/g, " ");
             if (normalizedNew === normalizedExisting) return true;
           }
-          
+
           // Match by DOI
           if (doi && existingEntry.url) {
             const existingDOI = extractDOI(existingEntry.url);
-            if (existingDOI && doi.toLowerCase() === existingDOI.toLowerCase()) return true;
+            if (existingDOI && doi.toLowerCase() === existingDOI.toLowerCase())
+              return true;
           }
-          
+
           return false;
         });
 
@@ -216,16 +232,19 @@ export function handleZoteroImport(event, onSuccess, onError) {
       });
 
       state.notify();
-      
+
       let message = `Successfully imported ${importCount} new item(s) from Zotero!`;
       if (skippedCount > 0) {
         message += `\n\nSkipped ${skippedCount} duplicate(s):\n`;
-        message += skippedTitles.slice(0, 5).map(t => `• ${t}`).join('\n');
+        message += skippedTitles
+          .slice(0, 5)
+          .map((t) => `• ${t}`)
+          .join("\n");
         if (skippedCount > 5) {
           message += `\n... and ${skippedCount - 5} more`;
         }
       }
-      
+
       onSuccess(message);
     } catch (err) {
       console.error("Zotero import error:", err);
@@ -313,7 +332,12 @@ export function buildDigest(data) {
     if (section.entries && section.entries.length > 0) {
       const anchor = section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       // Remove emoji from section title in TOC
-      const cleanTitle = section.title.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+      const cleanTitle = section.title
+        .replace(
+          /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu,
+          "",
+        )
+        .trim();
       md += `- [${cleanTitle}](#${anchor})\n`;
     }
   }

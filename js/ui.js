@@ -75,7 +75,6 @@ function renderInput(
   field,
   width = "w-full",
 ) {
-  // DOM handles HTML escaping automatically when setting .value
   return `<input
     type="text"
     value="${escapeHtml(value || "")}"
@@ -555,15 +554,14 @@ export function renderSections() {
     const sectionDiv = document.createElement("div");
     sectionDiv.className =
       "mb-6 p-4 bg-gray-800 rounded-lg shadow-md border border-gray-700";
-    sectionDiv.draggable = true;
+    sectionDiv.draggable = false; // Section itself not draggable - only the handle is
     sectionDiv.dataset.sectionId = section.id;
-
-    dragDropManager.attachSectionListeners(sectionDiv);
 
     let html = `
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-blue-300 cursor-move flex items-center gap-2">
-          <span class="text-gray-500 hover:text-white">☰</span> ${section.title}
+        <h3 class="text-lg font-bold text-blue-300 flex items-center gap-2">
+          <span class="section-drag-handle cursor-move text-gray-500 hover:text-white text-xl select-none" draggable="true" title="Drag to reorder sections">☰</span>
+          ${section.title}
         </h3>
         <button onclick="deleteSection('${section.id}')" class="text-red-400 hover:text-red-300 text-sm font-semibold hover:bg-red-900/30 px-2 py-1 rounded">Delete</button>
       </div>
@@ -594,15 +592,13 @@ export function renderSections() {
     sectionDiv.innerHTML = html;
     container.appendChild(sectionDiv);
 
-    sectionDiv.querySelectorAll("input, textarea, select").forEach((input) => {
-      input.addEventListener("mouseenter", () => {
-        sectionDiv.draggable = false;
-      });
-      input.addEventListener("mouseleave", () => {
-        sectionDiv.draggable = true;
-      });
-    });
+    // Attach section drag handle listeners
+    const sectionDragHandle = sectionDiv.querySelector(".section-drag-handle");
+    if (sectionDragHandle) {
+      dragDropManager.attachSectionListeners(sectionDiv, sectionDragHandle);
+    }
 
+    // Attach entry drag handle listeners
     sectionDiv.querySelectorAll("[data-entry-id]").forEach((entryDiv) => {
       const dragHandle = entryDiv.querySelector(".entry-drag-handle");
       if (dragHandle) {
