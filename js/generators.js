@@ -8,9 +8,14 @@ function formatJekyllText(text) {
 }
 
 // Helper function to format URLs with proper link text
-function formatURL(url, customText = null) {
+function formatURL(url, customText = null, isOpenAccess = false) {
   if (!url) return "";
-  
+
+  // If open access, use the badge as the link
+  if (isOpenAccess) {
+    return ` [<span style="background-color: #5a96d0; color: white; padding: 0.25em 0.4em; border-radius: 0.25rem; font-size: 75%; line-height: 1;">Open Access</span>](${url})`;
+  }
+
   // Check if it's a DOI URL
   if (url.includes("doi.org/")) {
     const doiMatch = url.match(/10\.\d{4,}\/[^\s]+/);
@@ -18,7 +23,7 @@ function formatURL(url, customText = null) {
       return ` [DOI](${url})`;
     }
   }
-  
+
   // Use custom text or default to "link"
   return ` [${customText || "link"}](${url})`;
 }
@@ -27,10 +32,6 @@ function formatURL(url, customText = null) {
 
 export function generatePublicationMarkdown(entry) {
   let md = "";
-
-  if (entry.openAccess) {
-    md += `<span style="background-color: #5a96d0; color: white; padding: 0.25em 0.4em; border-radius: 0.25rem; font-size: 75%; line-height: 1;">Open Access</span> `;
-  }
 
   // Format authors: Last Name, First Name
   const authors = entry.authors
@@ -44,7 +45,7 @@ export function generatePublicationMarkdown(entry) {
       return `${a.name} ${a.surname}`;
     })
     .join(", ");
-  
+
   if (authors) md += `${authors}. `;
 
   // Format based on publication type following MLA 9th edition
@@ -59,7 +60,7 @@ export function generatePublicationMarkdown(entry) {
     md += ".";
     // Add link for books
     if (entry.url) {
-      md += formatURL(entry.url, entry.urlText);
+      md += formatURL(entry.url, entry.urlText, entry.openAccess);
     }
   } else if (entry.pubType === "Chapter") {
     // Chapter: Author. "Title." *Book Title*, edited by Editor, Publisher, Year, pp. pages.
@@ -73,9 +74,12 @@ export function generatePublicationMarkdown(entry) {
     md += ".";
     // Add link for chapters
     if (entry.url) {
-      md += formatURL(entry.url, entry.urlText);
+      md += formatURL(entry.url, entry.urlText, entry.openAccess);
     }
-  } else if (entry.pubType === "Article" || entry.pubType === "Online Article") {
+  } else if (
+    entry.pubType === "Article" ||
+    entry.pubType === "Online Article"
+  ) {
     // Article: Author. "Title." *Journal*, vol. #, no. #, Date, [DOI/link].
     md += `"${entry.title}."`;
     if (entry.containerTitle) md += ` *${entry.containerTitle}*`;
@@ -86,7 +90,7 @@ export function generatePublicationMarkdown(entry) {
     }
     // Add formatted URL/DOI for articles
     if (entry.url) {
-      md += formatURL(entry.url, entry.urlText);
+      md += formatURL(entry.url, entry.urlText, entry.openAccess);
     }
     md += ".";
   } else if (entry.pubType === "Thesis") {
@@ -100,7 +104,7 @@ export function generatePublicationMarkdown(entry) {
     md += ".";
     // Add link for theses
     if (entry.url) {
-      md += formatURL(entry.url, entry.urlText);
+      md += formatURL(entry.url, entry.urlText, entry.openAccess);
     }
   } else {
     // Default fallback
@@ -111,11 +115,11 @@ export function generatePublicationMarkdown(entry) {
     if (entry.publisher) md += `, ${entry.publisher}`;
     if (entry.date) md += `, ${entry.date}`;
     if (entry.url) {
-      md += formatURL(entry.url, entry.urlText);
+      md += formatURL(entry.url, entry.urlText, entry.openAccess);
     }
     md += ".";
   }
-  
+
   md += "\n";
 
   if (entry.whyItMatters) {
@@ -126,24 +130,37 @@ export function generatePublicationMarkdown(entry) {
   }
 
   if (entry.abstract) {
-    const summaryLabel = (entry.pubType === "Book" || entry.pubType === "Chapter" || entry.pubType === "Thesis") 
-      ? "Annotation" 
-      : "Abstract";
+    const summaryLabel =
+      entry.pubType === "Book" ||
+      entry.pubType === "Chapter" ||
+      entry.pubType === "Thesis"
+        ? "Annotation"
+        : "Abstract";
     md += `<details markdown="1"><summary>${summaryLabel}</summary>\n${formatJekyllText(entry.abstract)}\n</details>\n`;
   }
-  
+
   md += "\n";
   return md;
 }
 
 function formatMLADate(dateStr) {
   if (!dateStr) return "";
-  
+
   const months = [
-    "Jan.", "Feb.", "Mar.", "Apr.", "May", "June",
-    "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."
+    "Jan.",
+    "Feb.",
+    "Mar.",
+    "Apr.",
+    "May",
+    "June",
+    "July",
+    "Aug.",
+    "Sept.",
+    "Oct.",
+    "Nov.",
+    "Dec.",
   ];
-  
+
   const parts = dateStr.split("-");
   if (parts.length === 3) {
     const year = parts[0];
@@ -157,16 +174,12 @@ function formatMLADate(dateStr) {
   } else if (parts.length === 1) {
     return parts[0];
   }
-  
+
   return dateStr;
 }
 
 export function generateJournalMarkdown(entry) {
   let md = "";
-
-  if (entry.openAccess) {
-    md += `<span style="background-color: #5a96d0; color: white; padding: 0.25em 0.4em; border-radius: 0.25rem; font-size: 75%; line-height: 1;">Open Access</span> `;
-  }
 
   if (entry.journalName) md += `*${entry.journalName}*`;
   if (entry.volume) md += `, Vol. ${entry.volume}`;
@@ -188,7 +201,11 @@ export function generateJournalMarkdown(entry) {
   }
 
   if (entry.url) {
-    md += `[${entry.urlText || "Link"}](${entry.url})`;
+    if (entry.openAccess) {
+      md += `[<span style="background-color: #5a96d0; color: white; padding: 0.25em 0.4em; border-radius: 0.25rem; font-size: 75%; line-height: 1;">Open Access</span>](${entry.url})`;
+    } else {
+      md += `[${entry.urlText || "Link"}](${entry.url})`;
+    }
   }
 
   md += "\n\n";
@@ -207,7 +224,8 @@ export function generateEventMarkdown(entry) {
   if (entry.cfpDeadline) md += `CfP Deadline: ${entry.cfpDeadline}  \n`;
   if (entry.place)
     md += `Place: ${entry.place}${entry.venue ? ", " + entry.venue : ""}  \n`;
-  if (entry.description) md += `Description: ${formatJekyllText(entry.description)}  \n`;
+  if (entry.description)
+    md += `Description: ${formatJekyllText(entry.description)}  \n`;
 
   if (entry.whyItMatters) {
     md += `*${formatJekyllText(entry.whyItMatters)}*  \n`;
