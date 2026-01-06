@@ -559,10 +559,15 @@ export function renderSections() {
 
     let html = `
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-blue-300 flex items-center gap-2">
-          <span class="section-drag-handle cursor-move text-gray-500 hover:text-white text-xl select-none" draggable="true" title="Drag to reorder sections">☰</span>
-          ${section.title}
-        </h3>
+      <div class="flex items-center gap-3">
+                <div class="flex flex-col">
+                  <button onclick="moveSectionUp('${section.id}')" class="text-gray-400 hover:text-white leading-none text-xs" title="Move Up">▲</button>
+                  <button onclick="moveSectionDown('${section.id}')" class="text-gray-400 hover:text-white leading-none text-xs" title="Move Down">▼</button>
+                </div>
+                <h3 class="text-lg font-bold text-blue-300">
+                  ${section.title}
+                </h3>
+              </div>
         <button onclick="deleteSection('${section.id}')" class="text-red-400 hover:text-red-300 text-sm font-semibold hover:bg-red-900/30 px-2 py-1 rounded">Delete</button>
       </div>
     `;
@@ -591,12 +596,6 @@ export function renderSections() {
 
     sectionDiv.innerHTML = html;
     container.appendChild(sectionDiv);
-
-    // Attach section drag handle listeners
-    const sectionDragHandle = sectionDiv.querySelector(".section-drag-handle");
-    if (sectionDragHandle) {
-      dragDropManager.attachSectionListeners(sectionDiv, sectionDragHandle);
-    }
 
     // Attach entry drag handle listeners
     sectionDiv.querySelectorAll("[data-entry-id]").forEach((entryDiv) => {

@@ -59,6 +59,33 @@ class DigestState {
     this.notify();
   }
 
+  // Move a section up one slot
+  moveSectionUp(id) {
+    const idx = this.data.sections.findIndex((s) => s.id === id);
+    if (idx > 0) {
+      const [section] = this.data.sections.splice(idx, 1);
+      this.data.sections.splice(idx - 1, 0, section);
+      this.notify();
+    }
+  }
+
+  // Move a section down one slot
+  moveSectionDown(id) {
+    const idx = this.data.sections.findIndex((s) => s.id === id);
+    if (idx !== -1 && idx < this.data.sections.length - 1) {
+      const [section] = this.data.sections.splice(idx, 1);
+      this.data.sections.splice(idx + 1, 0, section);
+      this.notify();
+    }
+  }
+
+  reorderSections(newIdOrder) {
+    this.data.sections.sort((a, b) => {
+      return newIdOrder.indexOf(a.id) - newIdOrder.indexOf(b.id);
+    });
+    this.notify();
+  }
+
   findSection(id) {
     return this.data.sections.find((s) => s.id === id);
   }

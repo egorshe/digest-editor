@@ -186,6 +186,18 @@ window.updateEntry = function (sectionId, entryId, field, value) {
   }
 };
 
+window.moveSectionUp = function (id) {
+  state.moveSectionUp(id);
+  UI.renderSections();
+  updatePreview();
+};
+
+window.moveSectionDown = function (id) {
+  state.moveSectionDown(id);
+  UI.renderSections();
+  updatePreview();
+};
+
 window.addAuthor = function (sectionId, entryId) {
   state.addAuthor(sectionId, entryId);
   UI.renderSections();
@@ -465,7 +477,8 @@ window.populateGistList = async function () {
   const gistIdContainer = document.getElementById("gistIdContainer");
 
   try {
-    gistIdContainer.innerHTML = '<p class="text-xs text-gray-400">🔄 Loading your digest drafts...</p>';
+    gistIdContainer.innerHTML =
+      '<p class="text-xs text-gray-400">🔄 Loading your digest drafts...</p>';
 
     const gists = await gistManager.listUserGists();
 
@@ -483,8 +496,10 @@ window.populateGistList = async function () {
       return;
     }
 
-    let html = '<label class="block text-sm mb-1 text-gray-400">📚 Your Digest Drafts:</label>';
-    html += '<select id="gistSelector" class="w-full p-2 bg-gray-700 rounded border border-gray-600 text-sm mb-2">';
+    let html =
+      '<label class="block text-sm mb-1 text-gray-400">📚 Your Digest Drafts:</label>';
+    html +=
+      '<select id="gistSelector" class="w-full p-2 bg-gray-700 rounded border border-gray-600 text-sm mb-2">';
     html += '<option value="">-- Select a Gist to Load --</option>';
 
     gists.forEach((gist) => {
@@ -493,16 +508,20 @@ window.populateGistList = async function () {
       html += `<option value="${gist.id}">${description} (Updated: ${date})</option>`;
     });
 
-    html += '</select>';
+    html += "</select>";
     html += '<div class="flex gap-2">';
-    html += '<button onclick="loadSelectedGist()" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium transition">📥 Load Selected</button>';
-    html += '<button onclick="refreshGistList()" class="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm transition">🔄</button>';
-    html += '</div>';
+    html +=
+      '<button onclick="loadSelectedGist()" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium transition">📥 Load Selected</button>';
+    html +=
+      '<button onclick="refreshGistList()" class="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm transition">🔄</button>';
+    html += "</div>";
 
     html += '<div class="mt-3 pt-3 border-t border-gray-600">';
-    html += '<label class="block text-sm mb-1 text-gray-400">Or enter Gist ID manually:</label>';
-    html += '<input type="text" id="gistId" placeholder="e.g., 1a2b3c4d5e6f7g8h9i0j" class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none" />';
-    html += '</div>';
+    html +=
+      '<label class="block text-sm mb-1 text-gray-400">Or enter Gist ID manually:</label>';
+    html +=
+      '<input type="text" id="gistId" placeholder="e.g., 1a2b3c4d5e6f7g8h9i0j" class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none" />';
+    html += "</div>";
 
     gistIdContainer.innerHTML = html;
   } catch (error) {
@@ -572,7 +591,12 @@ function updatePreview() {
     if (section.entries.length > 0) {
       const anchor = section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       // Remove emoji from section title in TOC
-      const cleanTitle = section.title.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+      const cleanTitle = section.title
+        .replace(
+          /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu,
+          "",
+        )
+        .trim();
       md += `- [${cleanTitle}](#${anchor})\n`;
     }
   });

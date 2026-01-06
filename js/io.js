@@ -10,85 +10,91 @@ class DragDropManager {
     this.draggedEntry = null;
   }
 
-  handleSectionDragStart(e) {
-    this.draggedSection = e.currentTarget;
-    e.currentTarget.classList.add("dragging");
+  handleEntryDragStart(e, entryElement) {
+    this.draggedEntry = entryElement;
+    entryElement.classList.add("dragging");
+
+    // Fix: Drag image
+    e.dataTransfer.setDragImage(entryElement, 0, 0);
     e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", entryElement.dataset.entryId);
   }
 
-  handleSectionDrop(e) {
-    e.stopPropagation();
+  handleEntryDragOver(e) {
     e.preventDefault();
+    e.stopPropagation();
+
+    const targetEntry = e.currentTarget;
 
     if (
-      this.draggedSection &&
-      e.currentTarget.dataset.sectionId &&
-      this.draggedSection !== e.currentTarget
+      !targetEntry ||
+      !this.draggedEntry ||
+      targetEntry === this.draggedEntry
     ) {
-      const fromIdx = state
-        .get()
-        .sections.findIndex(
-          (s) => s.id === this.draggedSection.dataset.sectionId,
-        );
-      const toIdx = state
-        .get()
-        .sections.findIndex((s) => s.id === e.currentTarget.dataset.sectionId);
-
-      if (fromIdx !== toIdx && fromIdx !== -1 && toIdx !== -1) {
-        state.moveSection(fromIdx, toIdx);
-      }
+      return;
     }
 
+    // LIVE SORT for Entries
+    const targetContainer = targetEntry.parentNode;
+    const rect = targetEntry.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+
+    // Determine position
+    if (e.clientY < midY) {
+      targetContainer.insertBefore(this.draggedEntry, targetEntry);
+    } else {
+      targetContainer.insertBefore(this.draggedEntry, targetEntry.nextSibling);
+    }
+  }
+
+  handleEntryDragLeave(e) {
     e.currentTarget.classList.remove("drag-over");
   }
 
   handleEntryDrop(e) {
+    e.preventDefault();
     e.stopPropagation();
-    e.preventDefault();
 
-    if (this.draggedEntry && e.currentTarget.dataset.entryId) {
-      const draggedSectionId = this.draggedEntry.dataset.sectionId;
-      const targetSectionId = e.currentTarget.dataset.sectionId;
+    const entryEl = this.draggedEntry;
+    if (!entryEl) return;
 
-      if (draggedSectionId && targetSectionId) {
-        const fromSec = state.findSection(draggedSectionId);
-        const toSec = state.findSection(targetSectionId);
+    entryEl.classList.remove("dragging");
 
-        const fromEntryIdx = fromSec.entries.findIndex(
-          (entry) => entry.id === this.draggedEntry.dataset.entryId,
-        );
-        const toEntryIdx = toSec.entries.findIndex(
-          (entry) => entry.id === e.currentTarget.dataset.entryId,
-        );
+    // 1. Identify context
+    const oldSectionId = entryEl.dataset.sectionId;
+    const entryId = entryEl.dataset.entryId;
 
-        if (fromSec && toSec && fromEntryIdx !== -1 && toEntryIdx !== -1) {
-          state.moveEntry(
-            draggedSectionId,
-            targetSectionId,
-            fromEntryIdx,
-            toEntryIdx,
-          );
-        }
-      }
+    // The new parent might be different if we dragged across sections
+    const newContainer = entryEl.parentNode;
+    // Assuming the container is inside the section wrapper
+    // We need to find the section ID of the new container.
+    // Usually via .closest() or if the container ITSELF has the ID.
+    // Based on your code, the entries seem to be in a container inside the section.
+    // Let's assume the dragged entry element still has the old dataset until we update it,
+    // so we look at the 'target' from the event or the DOM parent.
+    const newSectionEl = newContainer.closest("[data-section-id]");
+    const newSectionId = newSectionEl
+      ? newSectionEl.dataset.sectionId
+      : oldSectionId;
+
+    if (!oldSectionId || !newSectionId || !entryId) return;
+
+    // 2. Calculate Indexes
+    const oldSecState = state.findSection(oldSectionId);
+    const fromIdx = oldSecState.entries.findIndex((en) => en.id === entryId);
+
+    // Find where it landed in the DOM
+    const toIdx = Array.from(newContainer.children).indexOf(entryEl);
+
+    // 3. Sync State
+    if (fromIdx !== -1 && toIdx !== -1) {
+      state.moveEntry(oldSectionId, newSectionId, fromIdx, toIdx);
     }
 
-    e.currentTarget.classList.remove("drag-over");
+    this.draggedEntry = null;
   }
 
-  handleDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    e.currentTarget.classList.add("drag-over");
-  }
-
-  handleDragLeave(e) {
-    e.currentTarget.classList.remove("drag-over");
-  }
-
-  handleDragEnd(e) {
-    if (this.draggedSection) {
-      this.draggedSection.classList.remove("dragging");
-    }
+  handleEntryDragEnd(e) {
     if (this.draggedEntry) {
       this.draggedEntry.classList.remove("dragging");
     }
@@ -97,43 +103,31 @@ class DragDropManager {
       el.classList.remove("drag-over");
     });
 
-    this.draggedSection = null;
     this.draggedEntry = null;
   }
 
-  attachSectionListeners(sectionElement, dragHandle) {
-    // Only the drag handle triggers section drag
+  attachEntryListeners(entryElement, dragHandle) {
+    // Drag handle initiates the drag
     dragHandle.addEventListener("dragstart", (e) => {
-      this.draggedSection = sectionElement;
-      sectionElement.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
-      e.stopPropagation();
+      this.handleEntryDragStart(e, entryElement);
     });
 
-    dragHandle.addEventListener("dragend", this.handleDragEnd.bind(this));
-
-    // The section element is the drop target
-    sectionElement.addEventListener("dragover", this.handleDragOver.bind(this));
-    sectionElement.addEventListener(
-      "dragleave",
-      this.handleDragLeave.bind(this),
-    );
-    sectionElement.addEventListener("drop", this.handleSectionDrop.bind(this));
-  }
-
-  attachEntryListeners(element, dragHandle) {
-    dragHandle.addEventListener("dragstart", (e) => {
-      this.draggedEntry = element;
-      element.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
-      e.stopPropagation();
+    dragHandle.addEventListener("dragend", (e) => {
+      this.handleEntryDragEnd(e);
     });
 
-    dragHandle.addEventListener("dragend", this.handleDragEnd.bind(this));
+    // Entry element is the drop target
+    entryElement.addEventListener("dragover", (e) => {
+      this.handleEntryDragOver(e);
+    });
 
-    element.addEventListener("dragover", this.handleDragOver.bind(this));
-    element.addEventListener("dragleave", this.handleDragLeave.bind(this));
-    element.addEventListener("drop", this.handleEntryDrop.bind(this));
+    entryElement.addEventListener("dragleave", (e) => {
+      this.handleEntryDragLeave(e);
+    });
+
+    entryElement.addEventListener("drop", (e) => {
+      this.handleEntryDrop(e);
+    });
   }
 }
 
