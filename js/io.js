@@ -130,6 +130,13 @@ class DragDropManager {
 
 export const dragDropManager = new DragDropManager();
 
+// === HELPER FUNCTIONS ===
+function extractDOI(url) {
+  if (!url) return null;
+  const doiMatch = url.match(/10\.\d{4,}\/[^\s]+/);
+  return doiMatch ? doiMatch[0] : null;
+}
+
 // === ZOTERO IMPORT (CSL-JSON) ===
 export function handleZoteroImport(event, onSuccess, onError) {
   const file = event.target.files[0];
@@ -151,7 +158,38 @@ export function handleZoteroImport(event, onSuccess, onError) {
       }
 
       let importCount = 0;
+      let skippedCount = 0;
+      const skippedTitles = [];
+
       cslData.forEach((item) => {
+        const title = item.title || "";
+        const doi = item.DOI || "";
+        
+        // Check for duplicates by title (case-insensitive) or DOI
+        const isDuplicate = pubSection.entries.some((existingEntry) => {
+          // Match by title (normalized, case-insensitive)
+          if (title && existingEntry.title) {
+            const normalizedNew = title.toLowerCase().trim().replace(/\s+/g, ' ');
+            const normalizedExisting = existingEntry.title.toLowerCase().trim().replace(/\s+/g, ' ');
+            if (normalizedNew === normalizedExisting) return true;
+          }
+          
+          // Match by DOI
+          if (doi && existingEntry.url) {
+            const existingDOI = extractDOI(existingEntry.url);
+            if (existingDOI && doi.toLowerCase() === existingDOI.toLowerCase()) return true;
+          }
+          
+          return false;
+        });
+
+        if (isDuplicate) {
+          skippedCount++;
+          skippedTitles.push(title);
+          return; // Skip this entry
+        }
+
+        // Not a duplicate, add it
         const entry = {
           id: generateId(),
           type: "publication",
@@ -161,7 +199,7 @@ export function handleZoteroImport(event, onSuccess, onError) {
                 surname: a.family || "",
               }))
             : [{ name: "", surname: "" }],
-          title: item.title || "",
+          title: title,
           pubType: mapCSLType(item.type),
           containerTitle: item["container-title"] || "",
           publisher: item.publisher || "",
@@ -170,13 +208,25 @@ export function handleZoteroImport(event, onSuccess, onError) {
           urlText: "link",
           openAccess: false,
           abstract: item.abstract || "",
+          volume: item.volume || "",
+          issue: item.issue || "",
         };
         pubSection.entries.push(entry);
         importCount++;
       });
 
       state.notify();
-      onSuccess(`Successfully imported ${importCount} items from Zotero!`);
+      
+      let message = `Successfully imported ${importCount} new item(s) from Zotero!`;
+      if (skippedCount > 0) {
+        message += `\n\nSkipped ${skippedCount} duplicate(s):\n`;
+        message += skippedTitles.slice(0, 5).map(t => `• ${t}`).join('\n');
+        if (skippedCount > 5) {
+          message += `\n... and ${skippedCount - 5} more`;
+        }
+      }
+      
+      onSuccess(message);
     } catch (err) {
       console.error("Zotero import error:", err);
       onError(`Error importing Zotero data: ${err.message}`);
@@ -258,11 +308,13 @@ export function buildDigest(data) {
   md += "\n\n";
 
   // Table of Contents
-  md += "## Table of Contents\n\n";
+  md += "## Jump to\n\n";
   for (const section of data.sections) {
     if (section.entries && section.entries.length > 0) {
       const anchor = section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      md += `- [${section.title}](#${anchor})\n`;
+      // Remove emoji from section title in TOC
+      const cleanTitle = section.title.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+      md += `- [${cleanTitle}](#${anchor})\n`;
     }
   }
   md += "\n";
