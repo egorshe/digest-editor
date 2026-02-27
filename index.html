@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Digest Generator</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            .dragging {
+                opacity: 0.5;
+            }
+            .drag-over {
+                border-top: 3px solid #3b82f6;
+            }
+            ::-webkit-scrollbar {
+                width: 8px;
+            }
+            ::-webkit-scrollbar-track {
+                background: #1f2937;
+            }
+            ::-webkit-scrollbar-thumb {
+                background: #4b5563;
+                border-radius: 4px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+                background: #6b7280;
+            }
+            #locationsToggleIcon {
+                transition: transform 0.3s ease;
+            }
+            #locationsToggleIcon.rotated {
+                transform: rotate(-180deg);
+            }
+
+            .entry-drag-handle,
+            button,
+            .cursor-move {
+                user-select: none;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+            }
+
+            input,
+            textarea,
+            select {
+                user-select: text !important;
+                -webkit-user-select: text !important;
+                -moz-user-select: text !important;
+                cursor: text !important;
+            }
+
+            input[draggable="true"],
+            textarea[draggable="true"] {
+                -webkit-user-drag: none;
+                user-drag: none;
+            }
+
+            [data-entry-id] {
+                -webkit-user-drag: none;
+                user-drag: none;
+            }
+
+            .entry-drag-handle {
+                -webkit-user-drag: element;
+                user-drag: element;
+            }
+        </style>
+    </head>
+    <body class="bg-gray-900 text-gray-100">
+        <div class="flex h-screen">
+            <div class="w-1/2 overflow-y-auto border-r border-gray-700 p-6">
+                <div class="max-w-3xl mx-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h1 class="text-3xl font-bold text-blue-400">
+                            Digest Generator
+                        </h1>
+                        <button
+                            onclick="resetState()"
+                            class="px-3 py-1 bg-red-800 hover:bg-red-700 text-red-100 text-xs rounded border border-red-600 transition"
+                        >
+                            ⚠ Reset / Clear All
+                        </button>
+                    </div>
+
+                    <div class="mb-6 flex gap-2 flex-wrap">
+                        <button
+                            onclick="exportJSON()"
+                            class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-xs font-medium transition"
+                        >
+                            📄 Export JSON
+                        </button>
+                        <button
+                            onclick="importJSON()"
+                            class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-xs font-medium transition"
+                        >
+                            📥 Import JSON
+                        </button>
+                        <button
+                            onclick="importZotero()"
+                            class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-xs font-semibold transition"
+                        >
+                            📚 Zotero
+                        </button>
+                        <button
+                            onclick="openGistModal('save')"
+                            class="px-3 py-1.5 bg-green-700 hover:bg-green-600 rounded text-xs font-bold transition"
+                        >
+                            ☁️ Save
+                        </button>
+                        <button
+                            onclick="openGistModal('load')"
+                            class="px-3 py-1.5 bg-yellow-700 hover:bg-yellow-600 rounded text-xs font-bold transition"
+                        >
+                            📁 Load
+                        </button>
+                        <button
+                            onclick="downloadMarkdown()"
+                            class="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded text-xs font-bold transition"
+                        >
+                            💾 Markdown
+                        </button>
+                        <button
+                            onclick="normalizeTitles()"
+                            class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 rounded text-xs font-semibold transition"
+                        >
+                            🔧 Normalize Titles
+                        </button>
+                    </div>
+
+                    <div class="mb-8 p-4 bg-gray-800 rounded-lg shadow-lg">
+                        <h2 class="text-xl font-bold mb-4 text-blue-300">
+                            Frontmatter
+                        </h2>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm mb-1 text-gray-400"
+                                    >Document Title</label
+                                >
+                                <input
+                                    type="text"
+                                    id="docTitle"
+                                    class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                                    onchange="saveState()"
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-sm mb-1 text-gray-400"
+                                    >Date (YYYY-MM-DD)</label
+                                >
+                                <input
+                                    type="date"
+                                    id="docDate"
+                                    class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                                    onchange="saveState()"
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-sm mb-1 text-gray-400"
+                                    >Tags (comma-separated)</label
+                                >
+                                <input
+                                    type="text"
+                                    id="docTags"
+                                    class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                                    placeholder="film, memory, history"
+                                    onchange="saveState()"
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-sm mb-1 text-gray-400"
+                                    >Draft Status</label
+                                >
+                                <select
+                                    id="docDraft"
+                                    class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                                    onchange="saveState()"
+                                >
+                                    <option value="true">True</option>
+                                    <option value="false">False</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Locations Editor -->
+                    <div class="mb-8 p-4 bg-gray-800 rounded-lg shadow-lg">
+                        <div
+                            class="flex justify-between items-center mb-4 cursor-pointer"
+                            onclick="toggleLocationsEditor()"
+                        >
+                            <h2
+                                class="text-xl font-bold text-blue-300 flex items-center gap-2"
+                            >
+                                <span>📍</span>
+                                Locations Editor
+                            </h2>
+                            <span id="locationsToggleIcon" class="text-gray-400"
+                                >▼</span
+                            >
+                        </div>
+                        <div
+                            id="locationsEditorContent"
+                            class="hidden space-y-4"
+                        >
+                            <p class="text-sm text-gray-400 mb-3">
+                                Edit location data that will appear in the
+                                frontmatter. Changes sync with event entries.
+                            </p>
+                            <div id="locationsEditorContainer"></div>
+                        </div>
+                    </div>
+
+                    <div id="sectionsContainer"></div>
+
+                    <button
+                        onclick="addCustomSection()"
+                        class="w-full p-3 bg-gray-700 hover:bg-gray-600 rounded border-2 border-dashed border-gray-500 text-gray-300 transition"
+                    >
+                        + Add Custom Section
+                    </button>
+
+                    <div id="addSectionMenuContainer" class="mt-6"></div>
+                </div>
+            </div>
+
+            <div
+                id="previewContainer"
+                class="w-1/2 overflow-y-auto p-6 bg-gray-950"
+            >
+                <div class="max-w-3xl mx-auto">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-400">
+                        Preview
+                    </h2>
+                    <pre
+                        id="preview"
+                        class="p-4 bg-gray-900 rounded text-sm font-mono whitespace-pre-wrap border border-gray-800 text-gray-300"
+                    ></pre>
+                </div>
+            </div>
+        </div>
+
+        <input
+            type="file"
+            id="jsonInput"
+            accept=".json"
+            style="display: none"
+            onchange="handleJSONImport(event)"
+        />
+        <input
+            type="file"
+            id="zoteroInput"
+            accept=".json"
+            style="display: none"
+            onchange="handleZoteroImport(event)"
+        />
+
+        <div
+            id="gistModal"
+            class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50"
+            onclick="if(event.target.id === 'gistModal') closeGistModal()"
+        >
+            <div class="bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <h3
+                    id="gistModalTitle"
+                    class="text-xl font-bold mb-4 text-blue-400"
+                >
+                    Gist Cloud Storage
+                </h3>
+
+                <p class="text-sm text-gray-400 mb-4">
+                    You need a
+                    <a
+                        href="https://github.com/settings/tokens"
+                        target="_blank"
+                        class="text-blue-400 underline"
+                        >Personal Access Token (PAT)</a
+                    >
+                    with the **gist** scope enabled. This token is only stored
+                    in your browser's local storage.
+                </p>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm mb-1 text-gray-400"
+                            >GitHub Personal Access Token (PAT)</label
+                        >
+                        <input
+                            type="password"
+                            id="gistToken"
+                            placeholder="ghp_..."
+                            class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                        />
+                    </div>
+                    <div id="gistIdContainer">
+                        <label class="block text-sm mb-1 text-gray-400"
+                            >Gist ID (Leave empty to create a new Gist)</label
+                        >
+                        <input
+                            type="text"
+                            id="gistId"
+                            placeholder="e.g., 1a2b3c4d5e6f7g8h9i0j"
+                            class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                        />
+                    </div>
+                    <div id="gistActionBtnContainer">
+                        <button
+                            onclick="gistAction()"
+                            id="gistActionButton"
+                            class="w-full p-3 bg-blue-600 hover:bg-blue-700 rounded font-bold transition"
+                        >
+                            Perform Action
+                        </button>
+                    </div>
+                </div>
+
+                <button
+                    onclick="closeGistModal()"
+                    class="mt-4 w-full p-2 text-gray-400 hover:text-gray-200 transition"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        <script type="module" src="./js/main.js"></script>
+    </body>
+</html>
