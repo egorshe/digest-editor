@@ -28,6 +28,11 @@ function formatURL(url, customText = null, isOpenAccess = false) {
   return ` [${customText || "link"}](${url})`;
 }
 
+// IMPROVED: Helper to add proper kramdown line breaks
+function addLineBreak() {
+  return "  \n";
+}
+
 // === MARKDOWN GENERATORS ===
 
 export function generatePublicationMarkdown(entry) {
@@ -120,13 +125,16 @@ export function generatePublicationMarkdown(entry) {
     md += ".";
   }
 
-  md += "\n";
+  // FIXED: Add proper line break after citation
+  md += addLineBreak();
 
   if (entry.whyItMatters) {
-    md += `*${formatJekyllText(entry.whyItMatters)}*\n`;
+    md += `*${formatJekyllText(entry.whyItMatters)}*`;
+    md += addLineBreak();
   }
   if (entry.signal) {
-    md += `**Signal**: ${entry.signal}\n`;
+    md += `**Signal**: ${entry.signal}`;
+    md += addLineBreak();
   }
 
   if (entry.abstract) {
@@ -136,7 +144,8 @@ export function generatePublicationMarkdown(entry) {
       entry.pubType === "Thesis"
         ? "Annotation"
         : "Abstract";
-    md += `<details markdown="1"><summary>${summaryLabel}</summary>\n${formatJekyllText(entry.abstract)}\n</details>\n`;
+    md += `<details markdown="1"><summary>${summaryLabel}</summary>\n${formatJekyllText(entry.abstract)}\n</details>`;
+    md += addLineBreak();
   }
 
   md += "\n";
@@ -187,17 +196,21 @@ export function generateJournalMarkdown(entry) {
   if (entry.date) md += ` (${entry.date})`;
   if (entry.theme) md += `: "${entry.theme}"`;
   if (entry.guestEditor) md += `, edited by ${entry.guestEditor}`;
-  md += ".  \n";
+  md += ".";
+  md += addLineBreak();
 
   if (entry.description) {
-    md += `${formatJekyllText(entry.description)}  \n`;
+    md += `${formatJekyllText(entry.description)}`;
+    md += addLineBreak();
   }
 
   if (entry.whyItMatters) {
-    md += `*${formatJekyllText(entry.whyItMatters)}*  \n`;
+    md += `*${formatJekyllText(entry.whyItMatters)}*`;
+    md += addLineBreak();
   }
   if (entry.signal) {
-    md += `**Signal**: ${entry.signal}  \n`;
+    md += `**Signal**: ${entry.signal}`;
+    md += addLineBreak();
   }
 
   if (entry.url) {
@@ -206,71 +219,126 @@ export function generateJournalMarkdown(entry) {
     } else {
       md += `[${entry.urlText || "Link"}](${entry.url})`;
     }
+    md += addLineBreak();
   }
 
-  md += "\n\n";
+  md += "\n";
   return md;
 }
 
 export function generateEventMarkdown(entry) {
   let md = "";
+
   if (entry.title) {
     md += `**${entry.title}**`;
     if (entry.theme) md += ` "${entry.theme}"`;
-    md += "  \n";
+    md += addLineBreak();
   }
-  if (entry.dateStart)
-    md += `Dates: ${entry.dateStart}${entry.dateEnd ? " to " + entry.dateEnd : ""}  \n`;
-  if (entry.cfpDeadline) md += `CfP Deadline: ${entry.cfpDeadline}  \n`;
-  if (entry.place)
-    md += `Place: ${entry.place}${entry.venue ? ", " + entry.venue : ""}  \n`;
-  if (entry.description)
-    md += `Description: ${formatJekyllText(entry.description)}  \n`;
+
+  if (entry.dateStart) {
+    md += `Dates: ${entry.dateStart}${entry.dateEnd ? " to " + entry.dateEnd : ""}`;
+    md += addLineBreak();
+  }
+
+  if (entry.cfpDeadline) {
+    md += `CfP Deadline: ${entry.cfpDeadline}`;
+    md += addLineBreak();
+  }
+
+  if (entry.place) {
+    md += `Place: ${entry.place}${entry.venue ? ", " + entry.venue : ""}`;
+    md += addLineBreak();
+  }
+
+  if (entry.description) {
+    md += `Description: ${formatJekyllText(entry.description)}`;
+    md += addLineBreak();
+  }
 
   if (entry.whyItMatters) {
-    md += `*${formatJekyllText(entry.whyItMatters)}*  \n`;
-  }
-  if (entry.signal) {
-    md += `**Signal**: ${entry.signal}  \n`;
+    md += `*${formatJekyllText(entry.whyItMatters)}*`;
+    md += addLineBreak();
   }
 
-  if (entry.url) md += `[Website](${entry.url})  \n`;
+  if (entry.signal) {
+    md += `**Signal**: ${entry.signal}`;
+    md += addLineBreak();
+  }
+
+  if (entry.url) {
+    md += `[Website](${entry.url})`;
+    md += addLineBreak();
+  }
+
   md += "\n";
   return md;
 }
 
 export function generateCallMarkdown(entry) {
   let md = "";
-  if (entry.title) md += `**${entry.title}** - ${entry.theme || ""}  \n`;
-  if (entry.deadline) md += `Deadline: ${entry.deadline}  \n`;
+
+  if (entry.title) {
+    md += `**${entry.title}** - ${entry.theme || ""}`;
+    md += addLineBreak();
+  }
+
+  if (entry.deadline) {
+    md += `Deadline: ${entry.deadline}`;
+    md += addLineBreak();
+  }
 
   if (entry.whyItMatters) {
-    md += `*${formatJekyllText(entry.whyItMatters)}*  \n`;
-  }
-  if (entry.signal) {
-    md += `**Signal**: ${entry.signal}  \n`;
+    md += `*${formatJekyllText(entry.whyItMatters)}*`;
+    md += addLineBreak();
   }
 
-  if (entry.url) md += `[Apply](${entry.url})  \n`;
+  if (entry.signal) {
+    md += `**Signal**: ${entry.signal}`;
+    md += addLineBreak();
+  }
+
+  if (entry.url) {
+    md += `[Apply](${entry.url})`;
+    md += addLineBreak();
+  }
+
   md += "\n";
   return md;
 }
 
 export function generateMediaMarkdown(entry) {
   let md = "";
-  if (entry.title)
-    md += `**${entry.title}** (${entry.mediaType || "Media"})  \n`;
-  if (entry.creator) md += `By: ${entry.creator}  \n`;
-  if (entry.description) md += `${formatJekyllText(entry.description)}  \n`;
+
+  if (entry.title) {
+    md += `**${entry.title}** (${entry.mediaType || "Media"})`;
+    md += addLineBreak();
+  }
+
+  if (entry.creator) {
+    md += `By: ${entry.creator}`;
+    md += addLineBreak();
+  }
+
+  if (entry.description) {
+    md += `${formatJekyllText(entry.description)}`;
+    md += addLineBreak();
+  }
 
   if (entry.whyItMatters) {
-    md += `*${formatJekyllText(entry.whyItMatters)}*  \n`;
-  }
-  if (entry.signal) {
-    md += `**Signal**: ${entry.signal}  \n`;
+    md += `*${formatJekyllText(entry.whyItMatters)}*`;
+    md += addLineBreak();
   }
 
-  if (entry.url) md += `[Watch/Listen](${entry.url})  \n`;
+  if (entry.signal) {
+    md += `**Signal**: ${entry.signal}`;
+    md += addLineBreak();
+  }
+
+  if (entry.url) {
+    md += `[Watch/Listen](${entry.url})`;
+    md += addLineBreak();
+  }
+
   md += "\n";
   return md;
 }
