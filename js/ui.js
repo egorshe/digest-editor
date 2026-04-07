@@ -32,7 +32,11 @@ function renderImportance(sectionId, entry) {
   `;
 }
 
+// EDITORIAL CONTEXT — hidden for now, re-enable by restoring the return value below
 function renderEditorialFields(sectionId, entry) {
+  return ""; // disabled
+
+  /* eslint-disable no-unreachable */
   return `
     <div class="space-y-2 pt-2 border-t border-gray-600">
       <div class="flex items-center gap-2 text-xs text-amber-400">
@@ -65,6 +69,7 @@ function renderEditorialFields(sectionId, entry) {
       ).replace("<select", '<select title="Signal tag (optional)"')}
     </div>
   `;
+  /* eslint-enable no-unreachable */
 }
 
 function renderInput(
@@ -477,6 +482,15 @@ export function renderCallForm(sectionId, entry) {
     "deadline",
   ).replace("flex-1", "w-full");
   html += renderInput(entry.url, "URL", sectionId, entry.id, "url");
+
+  html += renderTextarea(
+    entry.description,
+    "Description",
+    sectionId,
+    entry.id,
+    "description",
+    "h-20",
+  );
 
   html += renderEditorialFields(sectionId, entry);
 

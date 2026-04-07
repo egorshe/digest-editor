@@ -590,14 +590,18 @@ function updatePreview() {
   md += "## Jump to\n\n";
   data.sections.forEach((section) => {
     if (section.entries.length > 0) {
-      const anchor = section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      // Remove emoji from section title in TOC
       const cleanTitle = section.title
         .replace(
-          /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu,
+          /[\p{Emoji_Presentation}\p{Extended_Pictographic}]\uFE0F?/gu,
           "",
         )
+        .replace(/\uFE0F/gu, "")
         .trim();
+      const anchor = cleanTitle
+        .toLowerCase()
+        .replace(/&/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
       md += `- [${cleanTitle}](#${anchor})\n`;
     }
   });

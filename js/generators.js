@@ -278,12 +278,18 @@ export function generateCallMarkdown(entry) {
   let md = "";
 
   if (entry.title) {
-    md += `**${entry.title}** - ${entry.theme || ""}`;
+    md += `**${entry.title}**`;
+    if (entry.theme) md += ` - ${entry.theme}`;
     md += addLineBreak();
   }
 
   if (entry.deadline) {
     md += `Deadline: ${entry.deadline}`;
+    md += addLineBreak();
+  }
+
+  if (entry.description) {
+    md += `${formatJekyllText(entry.description)}`;
     md += addLineBreak();
   }
 

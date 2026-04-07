@@ -324,14 +324,20 @@ export function buildDigest(data) {
   md += "## Jump to\n\n";
   for (const section of data.sections) {
     if (section.entries && section.entries.length > 0) {
-      const anchor = section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      // Remove emoji from section title in TOC
+      // Strip emojis and variation selectors first (matches what Kramdown sees)
       const cleanTitle = section.title
         .replace(
-          /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu,
+          /[\p{Emoji_Presentation}\p{Extended_Pictographic}]\uFE0F?/gu,
           "",
         )
+        .replace(/\uFE0F/gu, "") // strip any leftover variation selectors
         .trim();
+      // Kramdown anchor: lowercase, replace & and non-alphanumeric runs with a single dash
+      const anchor = cleanTitle
+        .toLowerCase()
+        .replace(/&/g, "") // & is dropped entirely by Kramdown, not converted to dash
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, ""); // strip leading/trailing dashes
       md += `- [${cleanTitle}](#${anchor})\n`;
     }
   }
