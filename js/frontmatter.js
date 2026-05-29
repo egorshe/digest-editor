@@ -44,7 +44,7 @@ export function collectLocations(sections, frontmatterLocations = []) {
 
   sections.forEach((section) => {
     (section.entries || []).forEach((entry) => {
-      if (!["conference", "festival", "exhibition"].includes(entry.type))
+      if (!["conference", "festival", "exhibition", "talk"].includes(entry.type))
         return;
 
       const { city, country } = parsePlaceField(entry.place);
