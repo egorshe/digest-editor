@@ -22,6 +22,87 @@ function addLineBreak() {
   return "  \n";
 }
 
+// === ICS / CALENDAR HELPERS ===
+
+function pad(n) {
+  return String(n).padStart(2, "0");
+}
+
+function utcStamp() {
+  const now = new Date();
+  return (
+    `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}` +
+    `T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`
+  );
+}
+
+/**
+ * Parse a time string like "17:00", "17h00", "5pm" → "170000"
+ * Returns null if unparseable.
+ */
+function parseICSTime(str) {
+  if (!str) return null;
+  const m = str.trim().match(/^(\d{1,2})(?:[h:](\d{2}))?(?:\s*(am|pm))?$/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = m[2] ? parseInt(m[2], 10) : 0;
+  const meridiem = m[3] ? m[3].toLowerCase() : null;
+  if (meridiem === "pm" && h < 12) h += 12;
+  if (meridiem === "am" && h === 12) h = 0;
+  return `${pad(h)}${pad(min)}00`;
+}
+
+/**
+ * Build a data: URI for an ICS file from an event entry.
+ * Returns null if there is no date to anchor the event.
+ */
+function buildCalendarDataUri(entry) {
+  if (!entry.date) return null;
+
+  const title = entry.title || "Event";
+  const baseDateStr = entry.date.replace(/-/g, "");
+  const uid = `${entry.date}-${title.replace(/[^a-z0-9]/gi, "").toLowerCase()}@digest`;
+  const desc = (entry.description || "").replace(/\n/g, "\\n");
+  const location = [entry.venue, entry.place].filter(Boolean).join(", ");
+
+  let dtStart, dtEnd, isAllDay = true;
+
+  if (entry.timeRange) {
+    // Split on " - ", "–", " to " (case-insensitive)
+    const parts = entry.timeRange.split(/\s*[-–]\s*|\s+to\s+/i).map((t) => t.trim());
+    const startTime = parseICSTime(parts[0]);
+    if (startTime) {
+      isAllDay = false;
+      dtStart = `${baseDateStr}T${startTime}`;
+      const endTime = parts[1] ? parseICSTime(parts[1]) : null;
+      if (endTime) dtEnd = `${baseDateStr}T${endTime}`;
+    }
+  }
+
+  if (isAllDay) dtStart = baseDateStr;
+
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Digest//EN",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${utcStamp()}`,
+    `SUMMARY:${title}`,
+    isAllDay ? `DTSTART;VALUE=DATE:${dtStart}` : `DTSTART:${dtStart}`,
+  ];
+
+  if (!isAllDay && dtEnd) lines.push(`DTEND:${dtEnd}`);
+  if (location)           lines.push(`LOCATION:${location}`);
+  if (desc)               lines.push(`DESCRIPTION:${desc}`);
+  if (entry.url)          lines.push(`URL:${entry.url}`);
+
+  lines.push("END:VEVENT", "END:VCALENDAR");
+
+  const icsContent = lines.join("\r\n");
+  return `data:text/calendar;charset=utf8,${encodeURIComponent(icsContent)}`;
+}
+
 // === MARKDOWN GENERATORS ===
 
 export function generatePublicationMarkdown(entry) {
@@ -223,7 +304,6 @@ export function generateEventMarkdown(entry) {
   if (entry.title) {
     md += `**${entry.title}**`;
     if (isTalk) {
-      // Formats the talk type label like: (Lecture) or (Presentation)
       const displayType = entry.customEventType || entry.eventTypeSelector || "Talk";
       md += ` (${displayType})`;
     }
@@ -231,13 +311,13 @@ export function generateEventMarkdown(entry) {
     md += addLineBreak();
   }
 
-  // 2. NEW: Inject Speaker / Presenter for talks
+  // 2. Speaker
   if (entry.speaker) {
     md += `By: ${entry.speaker}`;
     md += addLineBreak();
   }
 
-  // 3. NEW: Handle dates (single date for talks, date range for regular events)
+  // 3. Dates, Time, and Calendar Link
   if (isTalk) {
     if (entry.date || entry.timeRange) {
       let dateLine = "";
@@ -250,6 +330,13 @@ export function generateEventMarkdown(entry) {
       }
       md += dateLine;
       md += addLineBreak();
+
+      const calUri = buildCalendarDataUri(entry);
+      if (calUri) {
+        const safeFilename = (entry.title || "event").replace(/[^a-z0-9]/gi, "_").toLowerCase();
+        md += `<a href="${calUri}" download="${safeFilename}.ics">📅 Add to Calendar</a>`;
+        md += addLineBreak();
+      }
     }
   } else if (entry.dateStart) {
     md += `Dates: ${entry.dateStart}${entry.dateEnd ? " to " + entry.dateEnd : ""}`;
