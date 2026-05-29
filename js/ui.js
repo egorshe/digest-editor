@@ -378,6 +378,7 @@ export function renderJournalForm(sectionId, entry) {
 
 export function renderEventForm(sectionId, entry) {
   const isExhibition = entry.type === "exhibition";
+  const isTalk = entry.type === "talk"; // <-- NEW: Flag to check if it's a talk
   const showTheme = !isExhibition;
 
   let html = '<div class="space-y-2 text-sm">';
@@ -385,23 +386,32 @@ export function renderEventForm(sectionId, entry) {
 
   html += renderInput(entry.title, "Title", sectionId, entry.id, "title");
 
-  // Custom Event Type field
+  // NEW: Add Speaker field specifically for Talks
+  if (isTalk) {
+    html += renderInput(entry.speaker, "Speaker / Presenter", sectionId, entry.id, "speaker");
+  }
+
+  // NEW: Dynamic dropdown options based on whether it's a Talk or Event
+  const typeOptions = isTalk 
+    ? ["Lecture", "Presentation", "Public Talk", "Custom"] 
+    : ["Conference", "Festival", "Exhibition", "Custom"];
+    
+  const defaultOption = isTalk ? "Lecture" : entry.type.charAt(0).toUpperCase() + entry.type.slice(1);
+
   html += `<div class="flex gap-2">`;
   html += renderSelect(
-    ["Conference", "Festival", "Exhibition", "Custom"],
-    entry.customEventType
-      ? "Custom"
-      : entry.type.charAt(0).toUpperCase() + entry.type.slice(1),
+    typeOptions,
+    entry.customEventType ? "Custom" : (entry.eventTypeSelector || defaultOption),
     sectionId,
     entry.id,
     "eventTypeSelector",
     "flex-1",
-  ).replace("<select", '<select title="Event Type"');
+  ).replace("<select", '<select title="Type"');
 
   html += `<input
     type="text"
     value="${escapeHtml(entry.customEventType || "")}"
-    placeholder="Custom type (e.g., Workshop, Symposium)"
+    placeholder="Custom type..."
     class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none ${entry.customEventType ? "" : "hidden"}"
     data-section="${sectionId}"
     data-entry="${entry.id}"
@@ -411,12 +421,18 @@ export function renderEventForm(sectionId, entry) {
   html += `</div>`;
 
   if (showTheme) {
-    html += renderInput(entry.theme, "Theme", sectionId, entry.id, "theme");
+    // Tweak the placeholder text if it's a talk
+    html += renderInput(entry.theme, isTalk ? "Host Institution / Context" : "Theme", sectionId, entry.id, "theme");
   }
 
   html += `<div class="flex gap-2">`;
-  html += renderDateInput(entry.dateStart, sectionId, entry.id, "dateStart");
-  html += renderDateInput(entry.dateEnd, sectionId, entry.id, "dateEnd");
+  // NEW: Render a single Date for talks, or Date Range for conferences
+  if (isTalk) {
+    html += renderDateInput(entry.date, sectionId, entry.id, "date");
+  } else {
+    html += renderDateInput(entry.dateStart, sectionId, entry.id, "dateStart");
+    html += renderDateInput(entry.dateEnd, sectionId, entry.id, "dateEnd");
+  }
   html += `</div>`;
 
   if (entry.type === "conference") {
@@ -622,6 +638,7 @@ function getEntryConfig(type) {
     publications: { type: "publication", text: "Publication" },
     journalIssues: { type: "journalIssue", text: "Journal Issue" },
     conferences: { type: "conference", text: "Conference" },
+    talks: { type: "talk", text: "Talk" },
     callForPapers: { type: "callForPapers", text: "Call" },
     festivals: { type: "festival", text: "Festival" },
     exhibitions: { type: "exhibition", text: "Exhibition" },
@@ -638,9 +655,11 @@ function renderEntryForm(sectionId, entry) {
     return renderPublicationForm(sectionId, entry);
   } else if (entry.type === "journalIssue") {
     return renderJournalForm(sectionId, entry);
-  } else if (["conference", "exhibition", "festival"].includes(entry.type)) {
+  } else if (["conference", "exhibition", "festival", "talk"].includes(entry.type)) { 
+    // ^^^ Added "talk" to this array so it routes to the Event Form
     return renderEventForm(sectionId, entry);
-  } else if (entry.type === "callForPapers") {
+  } else if (entry.type === "callForPapers") { 
+    // vvv The entire complex "talk" block that used to be here is now DELETED.
     return renderCallForm(sectionId, entry);
   } else if (entry.type === "media") {
     return renderMediaForm(sectionId, entry);

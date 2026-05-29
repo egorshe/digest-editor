@@ -676,7 +676,7 @@ function updatePreview() {
       } else if (entry.type === "journalIssue") {
         md += Generators.generateJournalMarkdown(entry);
       } else if (
-        ["conference", "exhibition", "festival"].includes(entry.type)
+        ["conference", "exhibition", "festival", "talk"].includes(entry.type)
       ) {
         md += Generators.generateEventMarkdown(entry);
       } else if (entry.type === "callForPapers") {

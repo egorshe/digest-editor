@@ -1,22 +1,13 @@
-// === HELPER FUNCTIONS ===
-
-// Helper function to format descriptions with Jekyll-compatible line breaks
 function formatJekyllText(text) {
   if (!text) return "";
-  // Replace single newlines with double-space + newline for Jekyll
   return text.replace(/\n/g, "  \n");
 }
 
-// Helper function to format URLs with proper link text
 function formatURL(url, customText = null, isOpenAccess = false) {
   if (!url) return "";
-
-  // If open access, use the badge as the link
   if (isOpenAccess) {
     return ` [<span style="background-color: #5a96d0; color: white; padding: 0.25em 0.4em; border-radius: 0.25rem; font-size: 75%; line-height: 1;">Open Access</span>](${url})`;
   }
-
-  // Check if it's a DOI URL
   if (url.includes("doi.org/")) {
     const doiMatch = url.match(/10\.\d{4,}\/[^\s]+/);
     if (doiMatch) {
@@ -24,11 +15,9 @@ function formatURL(url, customText = null, isOpenAccess = false) {
     }
   }
 
-  // Use custom text or default to "link"
   return ` [${customText || "link"}](${url})`;
 }
 
-// IMPROVED: Helper to add proper kramdown line breaks
 function addLineBreak() {
   return "  \n";
 }
@@ -228,14 +217,31 @@ export function generateJournalMarkdown(entry) {
 
 export function generateEventMarkdown(entry) {
   let md = "";
+  const isTalk = entry.type === "talk";
 
+  // 1. Title, Talk Type, and Theme/Context
   if (entry.title) {
     md += `**${entry.title}**`;
+    if (isTalk) {
+      // Formats the talk type label like: (Lecture) or (Presentation)
+      const displayType = entry.customEventType || entry.eventTypeSelector || "Talk";
+      md += ` (${displayType})`;
+    }
     if (entry.theme) md += ` "${entry.theme}"`;
     md += addLineBreak();
   }
 
-  if (entry.dateStart) {
+  // 2. NEW: Inject Speaker / Presenter for talks
+  if (entry.speaker) {
+    md += `By: ${entry.speaker}`;
+    md += addLineBreak();
+  }
+
+  // 3. NEW: Handle dates (single date for talks, date range for regular events)
+  if (isTalk && entry.date) {
+    md += `Date: ${entry.date}`;
+    md += addLineBreak();
+  } else if (entry.dateStart) {
     md += `Dates: ${entry.dateStart}${entry.dateEnd ? " to " + entry.dateEnd : ""}`;
     md += addLineBreak();
   }
