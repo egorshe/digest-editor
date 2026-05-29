@@ -238,9 +238,19 @@ export function generateEventMarkdown(entry) {
   }
 
   // 3. NEW: Handle dates (single date for talks, date range for regular events)
-  if (isTalk && entry.date) {
-    md += `Date: ${entry.date}`;
-    md += addLineBreak();
+  if (isTalk) {
+    if (entry.date || entry.timeRange) {
+      let dateLine = "";
+      if (entry.date && entry.timeRange) {
+        dateLine = `Date: ${entry.date} (${entry.timeRange})`;
+      } else if (entry.date) {
+        dateLine = `Date: ${entry.date}`;
+      } else {
+        dateLine = `Time: ${entry.timeRange}`;
+      }
+      md += dateLine;
+      md += addLineBreak();
+    }
   } else if (entry.dateStart) {
     md += `Dates: ${entry.dateStart}${entry.dateEnd ? " to " + entry.dateEnd : ""}`;
     md += addLineBreak();

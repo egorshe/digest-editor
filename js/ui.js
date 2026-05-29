@@ -429,6 +429,7 @@ export function renderEventForm(sectionId, entry) {
   // NEW: Render a single Date for talks, or Date Range for conferences
   if (isTalk) {
     html += renderDateInput(entry.date, sectionId, entry.id, "date");
+    html += renderInput(entry.timeRange, "Time (e.g. 17:00-19:00)", sectionId, entry.id, "timeRange");
   } else {
     html += renderDateInput(entry.dateStart, sectionId, entry.id, "dateStart");
     html += renderDateInput(entry.dateEnd, sectionId, entry.id, "dateEnd");
