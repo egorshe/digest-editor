@@ -328,16 +328,15 @@ export function generateEventMarkdown(entry) {
       } else {
         dateLine = `Time: ${entry.timeRange}`;
       }
-      md += dateLine;
-      md += addLineBreak();
-
       const calUri = buildCalendarDataUri(entry);
       if (calUri) {
         const safeFilename = (entry.title || "event").replace(/[^a-z0-9]/gi, "_").toLowerCase();
-        md += `<a href="${calUri}" download="${safeFilename}.ics">📅 Add to Calendar</a>`;
-        md += addLineBreak();
+        md += `${dateLine} <a href="${calUri}" download="${safeFilename}.ics">📅 Add to Calendar</a>`;
+      } else {
+         md += dateLine;
       }
-    }
+      md += addLineBreak();
+      }
   } else if (entry.dateStart) {
     md += `Dates: ${entry.dateStart}${entry.dateEnd ? " to " + entry.dateEnd : ""}`;
     md += addLineBreak();
