@@ -433,3 +433,58 @@ export function clearLocalStorage() {
   localStorage.removeItem("gistId");
   localStorage.removeItem("gistToken");
 }
+
+// === DOI LOOKUP VIA CROSSREF ===
+export async function lookupDOI(doiInput) {
+  // 1. Extract clean DOI string
+  const doi = extractDOI(doiInput);
+  if (!doi) {
+    throw new Error("Could not extract a valid DOI from the input.");
+  }
+
+  // 2. Fetch from Crossref API
+  const url = `https://api.crossref.org/works/${encodeURIComponent(doi)}`;
+  const response = await fetch(url, {
+    headers: {
+      "Accept": "application/json"
+    }
+  });
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error("DOI not found in Crossref database.");
+    }
+    throw new Error(`Crossref API error (Status ${response.status})`);
+  }
+
+  const data = await response.json();
+  const item = data.message;
+  
+  // 3. Parse Crossref metadata into form patches
+  const patch = {};
+
+  if (item.title && item.title[0]) patch.title = item.title[0];
+  if (item.publisher) patch.publisher = item.publisher;
+  if (item["container-title"] && item["container-title"][0]) {
+    patch.containerTitle = item["container-title"][0];
+  }
+  
+  if (item.volume) patch.volume = item.volume;
+  if (item.issue) patch.issue = item.issue;
+
+  // Extract date (prefer published-print or published-online)
+  const issued = item["published-print"] || item["published-online"] || item.issued;
+  if (issued && issued["date-parts"] && issued["date-parts"][0]) {
+    patch.date = issued["date-parts"][0].join("-");
+  }
+
+  // Map authors array
+  if (item.author && Array.isArray(item.author)) {
+    patch.authors = item.author.map((auth) => ({
+      name: auth.given || "",
+      surname: auth.family || ""
+    }));
+  }
+
+  return patch;
+}

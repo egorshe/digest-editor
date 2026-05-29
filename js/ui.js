@@ -256,23 +256,17 @@ export function renderPublicationForm(sectionId, entry) {
   );
 
   html += `<div class="flex gap-2">`;
-  html += renderInput(
-    entry.url,
-    "URL/DOI",
-    sectionId,
-    entry.id,
-    "url",
-    "flex-1",
-  );
-  html += renderInput(
-    entry.urlText || "link",
-    "Link text",
-    sectionId,
-    entry.id,
-    "urlText",
-    "w-24",
-  );
+  html += renderInput(entry.url, "URL/DOI", sectionId, entry.id, "url", "flex-1");
+  html += renderInput(entry.urlText || "link", "Link text", sectionId, entry.id, "urlText", "w-24");
+  html += `<button
+    id="doi-lookup-btn-${entry.id}"
+    type="button"
+    onclick="lookupAndFillDOI('${sectionId}', '${entry.id}')"
+    title="Auto-fill fields from DOI via Crossref"
+    class="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded whitespace-nowrap transition"
+  >Fill from DOI</button>`;
   html += `</div>`;
+
 
   html += renderCheckbox(
     entry.openAccess,

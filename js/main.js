@@ -208,6 +208,63 @@ window.deleteAuthor = function (sectionId, entryId, idx) {
   UI.renderSections();
 };
 
+window.lookupAndFillDOI = async function (sectionId, entryId) {
+  // 1. Find the entry so we can read the current URL/DOI value
+  const section = state.findSection(sectionId);
+  const entry = section?.entries.find((e) => e.id === entryId);
+  if (!entry) return;
+ 
+  const doiInput = entry.url?.trim();
+  if (!doiInput) {
+    UI.showAlert(
+      "Please enter a DOI or DOI URL in the URL/DOI field first.\nExample: https://doi.org/10.1234/example",
+    );
+    return;
+  }
+ 
+  // 2. Show a loading state on the button
+  const btn = document.getElementById(`doi-lookup-btn-${entryId}`);
+  const originalText = btn?.textContent;
+  if (btn) {
+    btn.textContent = "Looking up…";
+    btn.disabled = true;
+  }
+ 
+  try {
+    // 3. Hit the Crossref API
+    const patch = await IO.lookupDOI(doiInput, sectionId, entryId);
+ 
+    // 4. Apply every returned field to state
+    Object.entries(patch).forEach(([field, value]) => {
+      if (field === "authors") {
+        // Authors need the full array replaced on the entry directly,
+        // then a notify — state has no bulk-author setter
+        entry.authors = value;
+      } else {
+        state.updateEntry(sectionId, entryId, field, value);
+      }
+    });
+ 
+    // If authors were patched we need a manual notify since we wrote directly
+    if (patch.authors) state.notify();
+ 
+    // 5. Re-render so the form reflects the new values
+    UI.renderSections();
+ 
+    UI.showAlert(
+      `✅ Filled ${Object.keys(patch).length} field(s) from Crossref.\nCheck the form and adjust anything that looks off.`,
+    );
+  } catch (err) {
+    UI.showAlert(`❌ DOI lookup failed:\n${err.message}`);
+  } finally {
+    if (btn) {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  }
+};
+
+
 window.resetState = function () {
   if (
     UI.showConfirmDialog(
