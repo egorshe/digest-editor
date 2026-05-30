@@ -44,7 +44,9 @@ export function collectLocations(sections, frontmatterLocations = []) {
 
   sections.forEach((section) => {
     (section.entries || []).forEach((entry) => {
-      if (!["conference", "festival", "exhibition", "talk"].includes(entry.type))
+      if (
+        !["conference", "festival", "exhibition", "talk"].includes(entry.type)
+      )
         return;
 
       const { city, country } = parsePlaceField(entry.place);
@@ -67,7 +69,8 @@ export function collectLocations(sections, frontmatterLocations = []) {
           venue: entry.venue || "",
           country,
           coords: parseCoordinates(entry.coords),
-          date: formatEventDate(entry.dateStart, entry.dateEnd),
+          date:
+            formatEventDate(entry.dateStart, entry.dateEnd) || entry.date || "",
           description:
             frontmatterOverride.description || entry.description || "",
           entryId: entry.id,
@@ -79,7 +82,8 @@ export function collectLocations(sections, frontmatterLocations = []) {
           venue: entry.venue || "",
           country,
           coords: parseCoordinates(entry.coords),
-          date: formatEventDate(entry.dateStart, entry.dateEnd),
+          date:
+            formatEventDate(entry.dateStart, entry.dateEnd) || entry.date || "",
           description: entry.description || "",
           entryId: entry.id,
         });
