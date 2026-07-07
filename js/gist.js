@@ -151,7 +151,9 @@ export class GistManager {
       }
 
       const gists = await response.json();
-      return gists.filter((g) => g.files[this.filename]);
+      return gists
+        .filter((g) => g.files[this.filename])
+        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
     } catch (error) {
       console.error("Failed to list gists:", error);
       throw error;
