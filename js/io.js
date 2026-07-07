@@ -1,5 +1,5 @@
 import { state } from "./state.js";
-import { generateId, sortEntries } from "./utils.js";
+import { generateId, sortEntries, mapCSLType, formatCSLDate } from "./utils.js";
 import { generateFrontmatter, collectLocations } from "./frontmatter.js";
 import * as Generators from "./generators.js";
 
@@ -249,28 +249,9 @@ export function handleZoteroImport(event, onSuccess, onError) {
   event.target.value = "";
 }
 
-function mapCSLType(cslType) {
-  const typeMap = {
-    book: "Book",
-    chapter: "Chapter",
-    "article-journal": "Article",
-    "article-magazine": "Article",
-    "article-newspaper": "Article",
-    "paper-conference": "Article",
-    thesis: "Thesis",
-    webpage: "Online Article",
-    "post-weblog": "Blog Post",
-  };
-  return typeMap[cslType] || "Article";
-}
-
-function formatCSLDate(issued) {
-  if (!issued) return "";
-  if (issued["date-parts"] && issued["date-parts"][0]) {
-    return issued["date-parts"][0].join("-");
-  }
-  if (issued.raw) return issued.raw;
-  return "";
+// === SHARED VALIDATION ===
+export function isValidDigestState(data) {
+  return !!(data && data.frontmatter && Array.isArray(data.sections));
 }
 
 // === JSON IMPORT/EXPORT ===
@@ -283,7 +264,7 @@ export function handleJSONImport(event, onSuccess, onError) {
     try {
       const newState = JSON.parse(e.target.result);
 
-      if (!newState.frontmatter || !newState.sections) {
+      if (!isValidDigestState(newState)) {
         throw new Error("Invalid digest file structure");
       }
 

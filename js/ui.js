@@ -112,7 +112,7 @@ function renderDateInput(value, sectionId, entryId, field) {
   return `<input
     type="date"
     value="${escapeHtml(value || "")}"
-    class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none min-w-0"
+    class="min-w-[10rem] flex-[0_0_auto] p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
     data-section="${sectionId}"
     data-entry="${entryId}"
     data-field="${field}"
@@ -425,11 +425,18 @@ export function renderEventForm(sectionId, entry) {
     html += renderInput(entry.theme, isTalk ? "Host Institution / Context" : "Theme", sectionId, entry.id, "theme");
   }
 
-  html += `<div class="flex gap-2">`;
+  html += `<div class="flex items-center gap-2">`;
   // NEW: Render a single Date for talks, or Date Range for conferences
   if (isTalk) {
     html += renderDateInput(entry.date, sectionId, entry.id, "date");
-    html += renderInput(entry.timeRange, "Time (e.g. 17:00-19:00)", sectionId, entry.id, "timeRange");
+    html += renderInput(
+      entry.timeRange,
+      "Time (e.g. 17:00-19:00)",
+      sectionId,
+      entry.id,
+      "timeRange",
+      "flex-1 min-w-[8rem]",
+    );
   } else {
     html += renderDateInput(entry.dateStart, sectionId, entry.id, "dateStart");
     html += renderDateInput(entry.dateEnd, sectionId, entry.id, "dateEnd");

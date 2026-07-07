@@ -1,8 +1,7 @@
 import { state } from "./state.js";
 import { sectionTypes } from "./config.js";
-import { debounce, sortEntries, toTitleCase } from "./utils.js";
-import { generateFrontmatter, collectLocations } from "./frontmatter.js";
-import * as Generators from "./generators.js";
+import { debounce, toTitleCase } from "./utils.js";
+import { collectLocations } from "./frontmatter.js";
 import * as IO from "./io.js";
 import * as UI from "./ui.js";
 import { gistManager } from "./gist.js";
@@ -508,6 +507,11 @@ window.gistAction = async function () {
       alert(`Draft successfully saved! Gist ID: ${gistId}`);
     } else if (currentGistAction === "load") {
       const loadedState = await gistManager.load();
+      if (!IO.isValidDigestState(loadedState)) {
+        throw new Error(
+          "This Gist doesn't contain a valid digest draft (missing frontmatter/sections).",
+        );
+      }
       state.set(loadedState);
       UI.populateFrontmatterInputs(state.get().frontmatter);
       UI.renderSections();
@@ -637,57 +641,10 @@ window.refreshGistList = async function () {
 function updatePreview() {
   const data = state.get();
   const frontmatter = UI.getFrontmatterFromDOM();
-  const locations = collectLocations(
-    data.sections,
-    data.frontmatterLocations || [],
-  );
 
-  let md = generateFrontmatter(frontmatter, locations);
-
-  md += "## Jump to\n\n";
-  data.sections.forEach((section) => {
-    if (section.entries.length > 0) {
-      const cleanTitle = section.title
-        .replace(
-          /[\p{Emoji_Presentation}\p{Extended_Pictographic}]\uFE0F?/gu,
-          "",
-        )
-        .replace(/\uFE0F/gu, "")
-        .trim();
-      const anchor = cleanTitle
-        .toLowerCase()
-        .replace(/&/g, "")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-      md += `- [${cleanTitle}](#${anchor})\n`;
-    }
-  });
-  md += "\n";
-
-  data.sections.forEach((section) => {
-    if (section.entries.length === 0) return;
-    md += `## ${section.title}\n\n`;
-
-    const sortedEntries = sortEntries(section.entries);
-
-    sortedEntries.forEach((entry) => {
-      if (entry.type === "publication") {
-        md += Generators.generatePublicationMarkdown(entry);
-      } else if (entry.type === "journalIssue") {
-        md += Generators.generateJournalMarkdown(entry);
-      } else if (
-        ["conference", "exhibition", "festival", "talk"].includes(entry.type)
-      ) {
-        md += Generators.generateEventMarkdown(entry);
-      } else if (entry.type === "callForPapers") {
-        md += Generators.generateCallMarkdown(entry);
-      } else if (entry.type === "media") {
-        md += Generators.generateMediaMarkdown(entry);
-      } else {
-        md += `${entry.content || ""}\n\n`;
-      }
-    });
-  });
+  // Reuse the exact same builder used for the exported .md file, so the
+  // preview and the download can never drift out of sync again.
+  const md = IO.buildDigest({ ...data, frontmatter });
 
   document.getElementById("preview").textContent = md;
 }

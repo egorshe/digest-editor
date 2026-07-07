@@ -109,7 +109,7 @@ export function generatePublicationMarkdown(entry) {
   let md = "";
 
   // Format authors: Last Name, First Name
-  const authors = entry.authors
+  const authors = (entry.authors || [])
     .filter((a) => a.surname || a.name)
     .map((a, idx) => {
       // First author: Last, First
