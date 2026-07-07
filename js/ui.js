@@ -84,7 +84,7 @@ function renderInput(
     type="text"
     value="${escapeHtml(value || "")}"
     placeholder="${placeholder}"
-    class="${width} p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+    class="${width} p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none min-w-0"
     data-section="${sectionId}"
     data-entry="${entryId}"
     data-field="${field}"
@@ -101,7 +101,7 @@ function renderTextarea(
 ) {
   return `<textarea
     placeholder="${placeholder}"
-    class="w-full p-2 bg-gray-600 rounded ${height} border border-transparent focus:border-blue-500 focus:outline-none"
+    class="w-full p-2 bg-gray-600 rounded ${height} border border-transparent focus:border-blue-500 focus:outline-none min-w-0"
     data-section="${sectionId}"
     data-entry="${entryId}"
     data-field="${field}"
@@ -112,7 +112,7 @@ function renderDateInput(value, sectionId, entryId, field) {
   return `<input
     type="date"
     value="${escapeHtml(value || "")}"
-    class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+    class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none min-w-0"
     data-section="${sectionId}"
     data-entry="${entryId}"
     data-field="${field}"
@@ -128,7 +128,7 @@ function renderSelect(
   width = "flex-1",
 ) {
   let html = `<select
-    class="${width} p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+    class="${width} p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none min-w-0"
     data-section="${sectionId}"
     data-entry="${entryId}"
     data-field="${field}"
@@ -175,7 +175,7 @@ export function renderPublicationForm(sectionId, entry) {
               type="text"
               value="${escapeHtml(author.surname || "")}"
               placeholder="Surname"
-              class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+              class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none min-w-0"
               data-section="${sectionId}"
               data-entry="${entry.id}"
               data-field="author-${i}-surname"
@@ -184,7 +184,7 @@ export function renderPublicationForm(sectionId, entry) {
               type="text"
               value="${escapeHtml(author.name || "")}"
               placeholder="Name"
-              class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none"
+              class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none min-w-0"
               data-section="${sectionId}"
               data-entry="${entry.id}"
               data-field="author-${i}-name"
@@ -412,7 +412,7 @@ export function renderEventForm(sectionId, entry) {
     type="text"
     value="${escapeHtml(entry.customEventType || "")}"
     placeholder="Custom type..."
-    class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none ${entry.customEventType ? "" : "hidden"}"
+    class="flex-1 p-2 bg-gray-600 rounded border border-transparent focus:border-blue-500 focus:outline-none min-w-0 ${entry.customEventType ? "" : "hidden"}"
     data-section="${sectionId}"
     data-entry="${entry.id}"
     data-field="customEventType"
