@@ -358,7 +358,9 @@ function normalizeMarkdown(md) {
   return (
     md
       .replace(/\n{3,}/g, "\n\n")
-      .replace(/[ \t]+$/gm, "")
+      // Collapse stray trailing whitespace, but preserve an intentional
+      // kramdown hard line break (exactly two trailing spaces).
+      .replace(/[ \t]+$/gm, (m) => (m.replace(/\t/g, "").length >= 2 ? "  " : ""))
       .trim() + "\n"
   );
 }
