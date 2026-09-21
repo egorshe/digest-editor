@@ -305,20 +305,21 @@ export function buildDigest(data) {
   md += "## Jump to\n\n";
   for (const section of data.sections) {
     if (section.entries && section.entries.length > 0) {
-      // Strip emojis and variation selectors first (matches what Kramdown sees)
+      // 1. Очищаем название от эмодзи для точного совпадения с тем, что попадет в заголовок
       const cleanTitle = section.title
         .replace(
           /[\p{Emoji_Presentation}\p{Extended_Pictographic}]\uFE0F?/gu,
           "",
         )
-        .replace(/\uFE0F/gu, "") // strip any leftover variation selectors
+        .replace(/\uFE0F/gu, "")
         .trim();
-      // Kramdown anchor: lowercase, replace & and non-alphanumeric runs with a single dash
+      
+      // 2. Генерация якоря в стиле Kramdown: заменяем любые не-буквенно-цифровые символы (включая & и пробелы) на дефисы
       const anchor = cleanTitle
         .toLowerCase()
-        .replace(/&/g, "") // & is dropped entirely by Kramdown, not converted to dash
         .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, ""); // strip leading/trailing dashes
+        .replace(/^-+|-+$/g, ""); // убираем дефисы по краям
+
       md += `- [${cleanTitle}](#${anchor})\n`;
     }
   }
@@ -328,7 +329,16 @@ export function buildDigest(data) {
   for (const section of data.sections) {
     if (!section.entries || section.entries.length === 0) continue;
 
-    md += `## ${section.title}\n\n`;
+    // Также очищаем заголовок секции от эмодзи, чтобы они не дублировались в тексте документа
+    const cleanTitle = section.title
+      .replace(
+        /[\p{Emoji_Presentation}\p{Extended_Pictographic}]\uFE0F?/gu,
+        "",
+      )
+      .replace(/\uFE0F/gu, "")
+      .trim();
+
+    md += `## ${cleanTitle}\n\n`;
 
     const sortedEntries = sortEntries(section.entries);
 
