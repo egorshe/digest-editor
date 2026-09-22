@@ -22,6 +22,62 @@ function addLineBreak() {
   return "  \n";
 }
 
+// === EVENT LOCATION / DATE DISPLAY FORMATTING ===
+
+const MONTHS_UPPER = [
+  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
+];
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+/** Parse "YYYY-MM-DD" (or "YYYY-MM" / "YYYY") into {year, month, day}. */
+function parseISODateParts(str) {
+  const [y, m, d] = str.split("-");
+  return {
+    year: y,
+    month: m ? parseInt(m, 10) - 1 : null,
+    day: d ? parseInt(d, 10) : null,
+  };
+}
+
+/**
+ * Format a date or date range as a compact, uppercase display string:
+ *   "25 SEP 2026"
+ *   "01–04 OCT 2026"
+ *   "27 OCT 2026 – 10 MAR 2027"
+ * Falls back to the raw string(s) if a date can't be parsed as YYYY-MM-DD.
+ */
+function formatEventDateDisplay(start, end) {
+  if (!start) return "";
+
+  const s = parseISODateParts(start);
+  if (s.day === null || s.month === null) return end ? `${start} to ${end}` : start;
+
+  if (!end || end === start) {
+    return `${pad2(s.day)} ${MONTHS_UPPER[s.month]} ${s.year}`;
+  }
+
+  const e = parseISODateParts(end);
+  if (e.day === null || e.month === null) return `${start} to ${end}`;
+
+  if (s.year === e.year && s.month === e.month) {
+    return `${pad2(s.day)}–${pad2(e.day)} ${MONTHS_UPPER[s.month]} ${s.year}`;
+  }
+  if (s.year === e.year) {
+    return `${pad2(s.day)} ${MONTHS_UPPER[s.month]} – ${pad2(e.day)} ${MONTHS_UPPER[e.month]} ${s.year}`;
+  }
+  return `${pad2(s.day)} ${MONTHS_UPPER[s.month]} ${s.year} – ${pad2(e.day)} ${MONTHS_UPPER[e.month]} ${e.year}`;
+}
+
+/** "Riga, Latvia" + "Riga Film Museum" -> "RIGA, LATVIA · RIGA FILM MUSEUM" */
+function formatEventLocationDisplay(place, venue) {
+  const parts = [place, venue].filter(Boolean);
+  return parts.join(" · ").toUpperCase();
+}
+
 // === ICS / CALENDAR HELPERS ===
 
 function pad(n) {
@@ -317,17 +373,20 @@ export function generateEventMarkdown(entry) {
     md += addLineBreak();
   }
 
-  // 3. Dates, Time, and Calendar Link
+  // 3. Location, then Dates/Time and Calendar Link
+  if (entry.place || entry.venue) {
+    md += formatEventLocationDisplay(entry.place, entry.venue);
+    md += addLineBreak();
+  }
+
   if (isTalk) {
     if (entry.date || entry.timeRange) {
-      let dateLine = "";
-      if (entry.date && entry.timeRange) {
-        dateLine = `Date: ${entry.date} (${entry.timeRange})`;
-      } else if (entry.date) {
-        dateLine = `Date: ${entry.date}`;
-      } else {
-        dateLine = `Time: ${entry.timeRange}`;
-      }
+      let dateLine = entry.date
+        ? formatEventDateDisplay(entry.date)
+        : "";
+      if (dateLine && entry.timeRange) dateLine += ` (${entry.timeRange})`;
+      if (!dateLine && entry.timeRange) dateLine = entry.timeRange;
+
       const calUri = buildCalendarDataUri(entry);
       if (calUri) {
         const safeFilename = (entry.title || "event").replace(/[^a-z0-9]/gi, "_").toLowerCase();
@@ -338,17 +397,12 @@ export function generateEventMarkdown(entry) {
       md += addLineBreak();
       }
   } else if (entry.dateStart) {
-    md += `Dates: ${entry.dateStart}${entry.dateEnd ? " to " + entry.dateEnd : ""}`;
+    md += formatEventDateDisplay(entry.dateStart, entry.dateEnd);
     md += addLineBreak();
   }
 
   if (entry.cfpDeadline) {
     md += `CfP Deadline: ${entry.cfpDeadline}`;
-    md += addLineBreak();
-  }
-
-  if (entry.place) {
-    md += `Place: ${entry.place}${entry.venue ? ", " + entry.venue : ""}`;
     md += addLineBreak();
   }
 
