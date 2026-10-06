@@ -1,52 +1,25 @@
 export const generateId = () =>
-  Date.now().toString(36) + Math.random().toString(36).substr(2);
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Date.now().toString(36) + Math.random().toString(36).slice(2);
 
 export function toTitleCase(str) {
   if (!str) return str;
 
   const lowercase = new Set([
-    "a",
-    "an",
-    "the",
-    "and",
-    "but",
-    "or",
-    "nor",
-    "for",
-    "yet",
-    "so",
-    "at",
-    "by",
-    "in",
-    "of",
-    "on",
-    "to",
-    "up",
-    "as",
-    "is",
-    "if",
-    "it",
-    "from",
-    "into",
-    "with",
-    "via",
-    "per",
-    "for",
-    "vs",
+    "a", "an", "the", "and", "but", "or", "nor", "for", "yet", "so",
+    "at", "by", "in", "of", "on", "to", "up", "as", "is", "if", "it",
+    "from", "into", "with", "via", "per", "vs",
   ]);
 
-  return str
-    .toLowerCase()
-    .split(" ")
-    .map((word, index, array) => {
-      if (index === 0 || index === array.length - 1) {
-        return word.charAt(0).toUpperCase() + word.slice(1);
-      }
+  const words = str.toLowerCase().split(/\s+/);
 
-      if (lowercase.has(word)) {
+  return words
+    .map((word, index) => {
+      const cleanWord = word.replace(/^[^\w]+|[^\w]+$/g, "");
+      if (index > 0 && index < words.length - 1 && lowercase.has(cleanWord)) {
         return word;
       }
-
       return word.charAt(0).toUpperCase() + word.slice(1);
     })
     .join(" ");
@@ -69,17 +42,21 @@ export function mapCSLType(cslType) {
 
 export function formatCSLDate(issued) {
   if (!issued) return "";
-  if (issued["date-parts"] && issued["date-parts"][0]) {
-    return issued["date-parts"][0].join("-");
+  if (issued["date-parts"]?.[0]) {
+    const [year, month, day] = issued["date-parts"][0];
+    if (!year) return "";
+    const pMonth = month ? String(month).padStart(2, "0") : null;
+    const pDay = day ? String(day).padStart(2, "0") : null;
+    return [year, pMonth, pDay].filter(Boolean).join("-");
   }
-  if (issued.raw) return issued.raw;
-  return "";
+  return issued.raw || "";
 }
 
-// Validation functions
 export function validateDate(dateStr) {
   if (!dateStr) return true;
-  return /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+  const date = new Date(dateStr);
+  return !isNaN(date.getTime());
 }
 
 export function validateURL(url) {
@@ -96,7 +73,6 @@ export function sanitizeFilename(filename) {
   return filename.replace(/[^a-z0-9-_]/gi, "-").toLowerCase();
 }
 
-// Debounce helper
 export function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -109,25 +85,22 @@ export function debounce(func, wait) {
   };
 }
 
-// Shared sorting utility - used by both preview and export
 export function sortEntries(entries) {
   return [...entries].sort((a, b) => {
-    // Sort by importance (1 first, then 2, then 3)
-    if ((a.importance || 2) !== (b.importance || 2)) {
-      return (a.importance || 2) - (b.importance || 2);
+    const impA = a.importance ?? 2;
+    const impB = b.importance ?? 2;
+    if (impA !== impB) {
+      return impA - impB;
     }
 
-    // Then by date (newest first)
     if (a.date && b.date && a.date !== b.date) {
       return new Date(b.date) - new Date(a.date);
     }
 
-    // Then by title alphabetically
     return (a.title || "").localeCompare(b.title || "");
   });
 }
 
-// Error handling for localStorage operations
 export function safeLocalStorage() {
   return {
     getItem(key) {
@@ -144,15 +117,16 @@ export function safeLocalStorage() {
         return true;
       } catch (e) {
         console.error("localStorage.setItem failed:", e);
-        alert("Failed to save data. Storage may be full.");
         return false;
       }
     },
     removeItem(key) {
       try {
         localStorage.removeItem(key);
+        return true;
       } catch (e) {
         console.error("localStorage.removeItem failed:", e);
+        return false;
       }
     },
   };
